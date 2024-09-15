@@ -5,12 +5,21 @@
   "main": "index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "webpack"
+    "build": "webpack",
+    "prettier-format": "prettier --config .prettierrc 'src/**/*.ts' --write",
+    "lint": "eslint . -c eslint.config.mjs"
   },
   "keywords": [],
   "author": "Gareth <gcross.code@icloud.com>",
   "license": "MIT",
   "devDependencies": {
+    "@eslint/js": "^9.10.0",
+    "@typescript-eslint/eslint-plugin": "^8.5.0",
+    "@typescript-eslint/parser": "^8.5.0",
+    "eslint": "^9.10.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "prettier": "^3.3.3",
     "ts-loader": "^9.5.1",
     "typescript": "^5.6.2",
     "webpack": "^5.94.0",
