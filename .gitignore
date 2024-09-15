@@ -1,0 +1,52 @@
+# BUILD PRODUCTS
+*.d
+*.o
+*.disasm
+*.map
+*.elf
+*.bin
+*.hex
+*.slo
+*.lo
+*.obj
+*.so
+*.dylib
+*.dll
+*.lai
+*.la
+*.a
+*.lib
+
+# BUILD FOLDERS
+build*/
+build*/*
+build_*/
+tmp/
+build_linux/*
+target/
+
+# QTCREATOR PROJECT
+*.includes
+*.creator
+*.creator.user
+*.creator.user.*
+*.config
+*.files
+*.cflags
+*.cxxflags
+
+# JETBRAINS
+*.idea
+cmake-build-*/
+cmake-*/
+
+# VSCODE
+.vscode/
+.cache/
+
+# PYTHON
+virtualenv/
+__pycache__/
+
+# RUST
+target/
