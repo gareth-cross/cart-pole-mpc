@@ -1,0 +1,42 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v2.3.0
+    hooks:
+      - id: check-yaml
+        exclude: '(^dependencies/)|(support/conda/.*\.yaml)'
+      - id: end-of-file-fixer
+        exclude: '(^dependencies/)|(.*\.rs$)'
+      - id: trailing-whitespace
+        exclude: '^dependencies/|(.*\.rs$)'
+      - id: check-toml
+        exclude: '^dependencies/'
+
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v15.0.6
+    hooks:
+      - id: clang-format
+        files: ^(components|test|benchmarks)/
+
+  - repo: https://github.com/cheshirekow/cmake-format-precommit
+    rev: v0.6.13
+    hooks:
+      - id: cmake-format
+
+  - repo: https://github.com/psf/black-pre-commit-mirror
+    rev: '24.8.0'
+    hooks:
+      - id: black
+        exclude: '^dependencies/'
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        name: isort (python)
+
+  - repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
+    rev: 'v2.12.0'
+    hooks:
+      - id: pretty-format-rust
+        exclude: '(^dependencies/)'
+        args: [--autofix]
