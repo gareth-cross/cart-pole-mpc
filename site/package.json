@@ -1,0 +1,23 @@
+{
+  "name": "pendulum-site",
+  "version": "1.0.0",
+  "description": "Interactive pendulum app.",
+  "main": "index.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack"
+  },
+  "keywords": [],
+  "author": "Gareth <gcross.code@icloud.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.6.2",
+    "webpack": "^5.94.0",
+    "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "@types/mathjs": "^9.4.2",
+    "mathjs": "^13.1.1"
+  }
+}
