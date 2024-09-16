@@ -20,3 +20,14 @@ function(add_eigen)
   endif()
 endfunction()
 add_eigen()
+
+# Create an interface library for the wrenfold runtime headers.
+function(add_wrenfold_headers)
+  add_library(wrenfold-runtime INTERFACE)
+  target_include_directories(
+    wrenfold-runtime
+    INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/wrenfold-runtime>
+              $<INSTALL_INTERFACE:include>)
+  add_library(wrenfold::wrenfold-runtime ALIAS wrenfold-runtime)
+endfunction()
+add_wrenfold_headers()

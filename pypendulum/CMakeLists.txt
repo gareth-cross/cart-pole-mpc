@@ -21,6 +21,11 @@ endif()
 set(MODULE_NAME "pypendulum")
 nanobind_add_module(${MODULE_NAME} source/wrapper.cc)
 target_compile_features(${MODULE_NAME} PRIVATE cxx_std_17)
-target_link_libraries(${MODULE_NAME} PRIVATE fmt::fmt-header-only eigen)
+target_link_libraries(${MODULE_NAME} PRIVATE fmt::fmt-header-only eigen
+                                             wrenfold::wrenfold-runtime)
 target_compile_options(${MODULE_NAME} PRIVATE ${WARNING_FLAGS})
 target_compile_definitions(${MODULE_NAME} PRIVATE PY_MODULE_NAME=${MODULE_NAME})
+
+if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+  target_compile_options(${MODULE_NAME} PRIVATE -O3)
+endif()
