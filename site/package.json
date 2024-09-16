@@ -27,6 +27,7 @@
   },
   "dependencies": {
     "@types/mathjs": "^9.4.2",
-    "mathjs": "^13.1.1"
+    "mathjs": "^13.1.1",
+    "typescript-eslint": "^8.5.0"
   }
 }
