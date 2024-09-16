@@ -1,3 +1,4 @@
+// Machine generated code (see generate.py)
 import * as mathjs from 'mathjs';
 import { PendulumParams } from './pendulum_params';
 

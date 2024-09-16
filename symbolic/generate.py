@@ -1,9 +1,15 @@
+"""
+Code-generate the forward dynamics of a double pendulum using wrenfold.
+"""
+
+import argparse
 import dataclasses
+import subprocess
 import typing as T
 from pathlib import Path
 
 import sympy as sp
-from wrenfold import code_generation, sym, sympy_conversion, type_annotations
+from wrenfold import code_generation, sym, sympy_conversion, type_annotations, type_info
 
 from .ts_generator import TypeScriptCodeGenerator
 
@@ -60,7 +66,22 @@ class PendulumParams:
     g: type_annotations.FloatScalar
 
 
-def main():
+TYPESCRIPT_PREAMBLE = """
+// Machine generated code (see generate.py)
+import * as mathjs from 'mathjs';
+import { PendulumParams } from './pendulum_params';
+
+""".lstrip()
+
+
+class CppCodeGenerator(code_generation.CppGenerator):
+    """Place custom types into custom namespace."""
+
+    def format_custom_type(self, custom: type_info.CustomType):
+        return f"pendulum::{custom.name}"
+
+
+def main(args: argparse.Namespace):
     t = sym.symbols("t", real=True)
 
     # Position of the base + angles as a function of time:
@@ -147,7 +168,7 @@ def main():
         u: type_annotations.FloatScalar,
     ):
         """
-        Evaluates the pendulum dynamics. Outputs a
+        Evaluates the pendulum dynamics.
         """
         states = list(zip([b_x, th_1, th_2], x[:3].to_flat_list()))
         vel_states = list(zip([b_x_dot, th_1_dot, th_2_dot], x[3:].to_flat_list()))
@@ -180,22 +201,39 @@ def main():
             code_generation.OutputArg(J_u, name="J_u", is_optional=True),
         ]
 
-    code = code_generation.generate_function(
-        pendulum_dynamics, generator=TypeScriptCodeGenerator()
-    )
-
-    with open(REPO_ROOT / "site" / "src" / "dynamics.ts", "w") as handle:
-        ts_preamble = (
-            "\n".join(
-                [
-                    "import * as mathjs from 'mathjs';",
-                    "import { PendulumParams } from './pendulum_params';",
-                ]
-            )
-            + "\n\n"
+    if args.target == "ts":
+        code = code_generation.generate_function(
+            pendulum_dynamics, generator=TypeScriptCodeGenerator()
         )
-        handle.write(ts_preamble + code)
+        with open(REPO_ROOT / "site" / "src" / "dynamics.ts", "w") as handle:
+            handle.write(TYPESCRIPT_PREAMBLE + code)
+    elif args.target == "cpp":
+        code = code_generation.generate_function(
+            pendulum_dynamics, generator=CppCodeGenerator()
+        )
+        output_path = REPO_ROOT / "pypendulum" / "source" / "dynamics.hpp"
+        with open(output_path, "w") as handle:
+            handle.write(
+                CppCodeGenerator.apply_preamble(
+                    code=code, namespace="gen", imports='#include "parameters.hpp"'
+                )
+            )
+            handle.flush()
+
+        # Format it for good measure:
+        subprocess.check_call(["clang-format", "-i", str(output_path)])
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--target",
+        choices=["ts", "cpp"],
+        help="Which implementation to generate",
+        required=True,
+    )
+    return parser.parse_args()
 
 
 if __name__ == "__main__":
-    main()
+    main(parse_args())
