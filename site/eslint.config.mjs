@@ -1,5 +1,5 @@
 // eslint.config.mjs
-// This is copy-pasta from: 
+// This is copy-pasta from:
 // https://blog.logrocket.com/linting-typescript-eslint-prettier/
 import globals from "globals";
 import pluginJs from "@eslint/js";

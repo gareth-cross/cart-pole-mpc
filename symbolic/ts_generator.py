@@ -3,21 +3,10 @@ TypeScript code generator for wrenfold.
 """
 
 import typing as T
-import numpy as np
 
-from wrenfold import (
-    ast,
-    code_generation,
-    geometry,
-    sym,
-    type_annotations,
-    type_info,
-)
-from wrenfold.enumerations import (
-    RelationalOperation,
-    StdMathFunction,
-    SymbolicConstant,
-)
+import numpy as np
+from wrenfold import ast, code_generation, geometry, sym, type_annotations, type_info
+from wrenfold.enumerations import RelationalOperation, StdMathFunction, SymbolicConstant
 
 
 class TypeScriptCodeGenerator(code_generation.BaseGenerator):

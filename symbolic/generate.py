@@ -1,8 +1,8 @@
 import dataclasses
 import typing as T
-import sympy as sp
 from pathlib import Path
 
+import sympy as sp
 from wrenfold import code_generation, sym, sympy_conversion, type_annotations
 
 from .ts_generator import TypeScriptCodeGenerator
@@ -185,10 +185,15 @@ def main():
     )
 
     with open(REPO_ROOT / "site" / "src" / "dynamics.ts", "w") as handle:
-        ts_preamble = '\n'.join([
-            "import * as mathjs from 'mathjs';",
-            "import { PendulumParams } from './pendulum_params';"
-        ]) + "\n\n"
+        ts_preamble = (
+            "\n".join(
+                [
+                    "import * as mathjs from 'mathjs';",
+                    "import { PendulumParams } from './pendulum_params';",
+                ]
+            )
+            + "\n\n"
+        )
         handle.write(ts_preamble + code)
 
 
