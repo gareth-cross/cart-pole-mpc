@@ -11,8 +11,8 @@
 namespace gen {
 
 template <typename Scalar, typename T1, typename T3, typename T4, typename T5>
-void pendulum_dynamics(const pendulum::PendulumParams& params, const T1& x, const Scalar u,
-                       T3&& x_dot, T4&& J_x, T5&& J_u) {
+void double_pendulum_dynamics(const pendulum::PendulumParams& params, const T1& x, const Scalar u,
+                              T3&& x_dot, T4&& J_x, T5&& J_u) {
   auto _x = wf::make_input_span<6, 1>(x);
   auto _x_dot = wf::make_output_span<6, 1>(x_dot);
   auto _J_x = wf::make_optional_output_span<6, 6>(J_x);
