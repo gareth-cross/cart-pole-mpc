@@ -2,6 +2,7 @@
 Train a model to control double pendulum.
 """
 
+import argparse
 import typing as T
 from pathlib import Path
 
@@ -13,7 +14,11 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 from torch import nn
 
-from pypendulum import PendulumParams, evaluate_forward_dynamics
+from pypendulum import (
+    PendulumParams,
+    evaluate_forward_dynamics_double,
+    evaluate_forward_dynamics_single,
+)
 
 SCRIPT_PATH = Path(__file__).parent.absolute()
 
@@ -36,9 +41,14 @@ class DynamicsLayer(th.autograd.Function):
         for row in params:
             params_structs.append(PendulumParams(*row))
 
-        x_out, x_D_u = evaluate_forward_dynamics(
-            params_structs, dt, u_controls.detach().cpu(), x0_states
-        )
+        if x0_states.shape[-1] == 4:
+            x_out, x_D_u = evaluate_forward_dynamics_single(
+                params_structs, dt, u_controls.detach().cpu(), x0_states
+            )
+        else:
+            x_out, x_D_u = evaluate_forward_dynamics_double(
+                params_structs, dt, u_controls.detach().cpu(), x0_states
+            )
 
         # Save the derivatives for the backward pass:
         ctx.save_for_backward(th.tensor(x_D_u, dtype=th.float32))
@@ -47,18 +57,18 @@ class DynamicsLayer(th.autograd.Function):
     @staticmethod
     def backward(ctx, grad_output: th.Tensor):
         # `u_controls` had shape (B, N).
-        # `grad_output` will have shape (B, N, 6), the same as `x_out`.
+        # `grad_output` will have shape (B, N, D), the same as `x_out`.
         # We need to output something with the same shape as `u_controls`: (B, N)
         (x_D_u,) = ctx.saved_tensors
 
-        # x_D_u is ordered over: [batch, x_out, u_control, 6]
-        # We swap it such that the last two dims are: [..., x_out, 6]
+        # x_D_u is ordered over: [batch, x_out, u_control, D]
+        # We swap it such that the last two dims are: [..., x_out, D]
         x_D_u = th.permute(x_D_u, (0, 2, 1, 3))
 
         # Insert a new dimension and multiply loss_D_x with x_D_u
         grad_result = th.multiply(grad_output[:, None, :, :], x_D_u)
 
-        # For each `u`, sum over all `xs` and complete the 1x6 * 6x1 chain rule of:
+        # For each `u`, sum over all `xs` and complete the 1xD * Dx1 chain rule of:
         #   loss_D_x[i] * x[i]_D_u
         grad_result = th.sum(grad_result, dim=[-2, -1])
 
@@ -69,10 +79,58 @@ class DynamicsLayer(th.autograd.Function):
 class EnergyLoss(nn.Module):
     """Evaluate loss based on Lagrangian of the pendulum."""
 
-    def __init__(self):
+    def __init__(self, is_single: bool):
         super().__init__()
+        self.is_single = is_single
 
-    def forward(self, params: th.Tensor, x_states: th.Tensor):
+    @staticmethod
+    def evaluate_single_loss(params: th.Tensor, x_states: th.Tensor):
+        """Energy loss for the single pendulum cart-pole system."""
+        assert x_states.shape[-1] == 4, "Should be a 4 dimensional state"
+
+        params = params[:, None, :]
+        m_b, m_1, l_1, g = (
+            params[..., 0],
+            params[..., 1],
+            params[..., 3],
+            params[..., 5],
+        )
+
+        b_x, th_1, b_x_dot, th_1_dot = (
+            x_states[..., 0],
+            x_states[..., 1],
+            x_states[..., 2],
+            x_states[..., 3],
+        )
+
+        # Compute kinetic energy of the system:
+        b_dot = th.dstack([b_x_dot, th.zeros_like(b_x)])
+
+        p1_dot = b_dot + th.dstack(
+            [-th.sin(th_1) * l_1 * th_1_dot, th.cos(th_1) * l_1 * th_1_dot]
+        )
+        T = 0.5 * (m_b * th.sum(b_dot**2, axis=-1) + m_1 * th.sum(p1_dot**2, axis=-1))
+
+        # Compute potential energy of the system:
+        V = m_1 * g * l_1 * th.sin(th_1)
+
+        # Loss is weighted higher as time increases:
+        _, N = T.shape
+        if False:
+            lin_spaced = th.linspace(0.0, 1.0, N, dtype=T.dtype)[None, ...]
+            weighting = 3 * (lin_spaced**2) - 2 * (lin_spaced**3)
+        else:
+            weighting = th.zeros(size=(1, N), dtype=T.dtype)
+            weighting[:, -1] = 1.0
+
+        loss = th.mean((T - V) * weighting) / th.sum(weighting)
+        return (loss, th.mean(T), th.mean(V))
+
+    @staticmethod
+    def evaluate_double_loss(params: th.Tensor, x_states: th.Tensor):
+        """Energy loss for the double pendulum cart-pole system."""
+        assert x_states.shape[-1] == 6, "Should be a 6 dimensional state"
+
         params = params[:, None, :]
         m_b, m_1, m_2, l_1, l_2, g = (
             params[..., 0],
@@ -120,14 +178,21 @@ class EnergyLoss(nn.Module):
 
         return (loss, th.mean(T), th.mean(V))
 
+    def forward(self, params: th.Tensor, x_states: th.Tensor):
+        if self.is_single:
+            return self.evaluate_single_loss(params=params, x_states=x_states)
+        else:
+            return self.evaluate_double_loss(params=params, x_states=x_states)
+
 
 class Network(nn.Module):
     """Network to control the pendulum."""
 
-    def __init__(self) -> None:
+    def __init__(self, input_dim: int) -> None:
         super().__init__()
-
-        self.something = nn.Sequential(nn.Linear(6, 64), nn.Tanh(), nn.Linear(64, 200))
+        self.something = nn.Sequential(
+            nn.Linear(input_dim, 64), nn.Tanh(), nn.Linear(64, 200)
+        )
 
     def forward(self, x_initial_states: th.Tensor) -> th.Tensor:
         return self.something(x_initial_states)
@@ -157,12 +222,15 @@ class Monitor(TensorBoardLogger):
 
 class System(pl.LightningModule):
 
-    def __init__(self, monitor: T.Optional[Monitor] = None):
+    def __init__(
+        self, hparams: argparse.Namespace, monitor: T.Optional[Monitor] = None
+    ):
         super().__init__()
-        self.model = Network()
+        self.is_single = hparams.version == "single"
+        self.model = Network(input_dim=4 if self.is_single else 6)
         self.monitor = monitor
-        self.energy_loss = EnergyLoss()
-        self.save_hyperparameters(dict())
+        self.energy_loss = EnergyLoss(is_single=self.is_single)
+        self.save_hyperparameters(hparams)
 
     def configure_optimizers(self):
         return th.optim.Adam(self.parameters(), lr=0.001)
@@ -194,14 +262,22 @@ class System(pl.LightningModule):
 class DataModule(pl.LightningDataModule):
     """Module that generates input states for the system."""
 
-    def __init__(self, num_examples: int, batch_size: int = 16, num_workers: int = 0):
+    def __init__(
+        self,
+        version: str,
+        num_examples: int,
+        batch_size: int = 16,
+        num_workers: int = 0,
+    ):
         super().__init__()
-
+        self.version = version
         self.num_examples = num_examples
         self.batch_size = batch_size
         self.num_workers = num_workers
         # Initially start states at zero:
-        self.train_dataset = np.zeros(shape=(num_examples, 6), dtype=np.float32)
+        self.train_dataset = np.zeros(
+            shape=(num_examples, 4 if self.version == "single" else 6), dtype=np.float32
+        )
         # Apply same pendulum params to every example for now.
         self.params = PendulumParams()
         self.params.m_b = 10.0
@@ -245,16 +321,26 @@ class DataModule(pl.LightningDataModule):
         )
 
 
-def main():
+def main(args: argparse.Namespace):
     pl.seed_everything(7)
-    data_module = DataModule(num_examples=10000)
+    data_module = DataModule(version=args.version, num_examples=100000)
     callbacks = [ModelCheckpoint(save_last=True)]
     monitor = Monitor(run_dir=SCRIPT_PATH / "logs")
-    system = System(monitor=monitor)
+    system = System(hparams=args, monitor=monitor)
     trainer = pl.Trainer(max_epochs=10, logger=monitor, callbacks=callbacks)
-
     trainer.fit(model=system, train_dataloaders=data_module.train_dataloader())
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--version",
+        choices=["single", "double"],
+        help="Which system to simulate",
+        required=True,
+    )
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
-    main()
+    main(parse_args())
