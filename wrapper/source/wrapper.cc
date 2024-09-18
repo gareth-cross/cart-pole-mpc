@@ -120,7 +120,8 @@ auto evaluate_forward_dynamics(
       x.noalias() += x_dot * dt;
 
       for (std::size_t dim = 0; dim < D; ++dim) {
-        F_ASSERT_LT(x_out.compute_index(b, i, dim), storage->x_data.size());
+        F_ASSERT_LT(static_cast<std::size_t>(x_out.compute_index(b, i, dim)),
+                    storage->x_data.size());
         x_out(b, i, dim) = x[dim];
       }
     }
@@ -145,7 +146,8 @@ auto evaluate_forward_dynamics(
       for (std::size_t j = i; j < N; ++j) {
         // Copy to the output:
         for (std::size_t dim = 0; dim < D; ++dim) {
-          F_ASSERT_LT(x_D_u_out.compute_index(b, j, i, dim), storage->x_D_u_data.size(),
+          F_ASSERT_LT(static_cast<std::size_t>(x_D_u_out.compute_index(b, j, i, dim)),
+                      storage->x_D_u_data.size(),
                       "b = {}, j = {}, i = {}, dim = {}, B = {}, N = {}", b, j, i, dim, B, N);
           x_D_u_out(b, j, i, dim) = f_D_u_i[dim];
         }

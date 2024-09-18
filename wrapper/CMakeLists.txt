@@ -26,6 +26,6 @@ target_link_libraries(${MODULE_NAME} PRIVATE fmt::fmt-header-only eigen
 target_compile_options(${MODULE_NAME} PRIVATE ${WARNING_FLAGS})
 target_compile_definitions(${MODULE_NAME} PRIVATE PY_MODULE_NAME=${MODULE_NAME})
 
-if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
+if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT MSVC)
   target_compile_options(${MODULE_NAME} PRIVATE -O3)
 endif()
