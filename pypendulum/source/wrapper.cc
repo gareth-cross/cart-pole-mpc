@@ -155,6 +155,8 @@ auto evaluate_forward_dynamics(
 NB_MODULE(PY_MODULE_NAME, m) {
   nb::class_<pendulum::PendulumParams>(m, "PendulumParams")
       .def(nb::init<>())
+      .def(nb::init<double, double, double, double, double, double>(), nb::arg("m_b"),
+           nb::arg("m_1"), nb::arg("m_2"), nb::arg("l_1"), nb::arg("l_2"), nb::arg("g"))
       .def_rw("m_b", &pendulum::PendulumParams::m_b)
       .def_rw("m_1", &pendulum::PendulumParams::m_1)
       .def_rw("m_2", &pendulum::PendulumParams::m_2)
