@@ -38,6 +38,15 @@ END_THIRD_PARTY_INCLUDES
 namespace nb = nanobind;
 namespace pendulum {
 
+template <typename X, typename F>
+X runge_kutta_4th_order(const X& x, const double h, F&& f) {
+  const X k1 = f(x);
+  const X k2 = f(x + k1 * h / 2.0);
+  const X k3 = f(x + k2 * h / 2.0);
+  const X k4 = f(x + h * k3);
+  return x + (h / 6.0) * (k1 + k2 * 2.0 + k3 * 2.0 + k4);
+}
+
 // We need to evaluate the forward dynamics model over a set of timesteps.
 // Pendulum params. (B, ) of these.
 // Timestep size: `dt`, 1 scalar.
@@ -109,15 +118,29 @@ auto evaluate_forward_dynamics(
     // This is just a simple euler integration, but our horizon is not that long so it might be
     // ok?
     for (std::size_t i = 0; i < N; ++i) {
-      Eigen::Matrix<double, D, 1> x_dot;
+      // Compute derivatives:
       if constexpr (D == 6) {
-        gen::double_pendulum_dynamics(params[b], x, static_cast<double>(u_view(b, i)), x_dot,
+        Eigen::Matrix<double, D, 1> unused;
+        gen::double_pendulum_dynamics(params[b], x, static_cast<double>(u_view(b, i)), unused,
                                       f_D_x[i], f_D_u[i]);
       } else {
-        gen::single_pendulum_dynamics(params[b], x, static_cast<double>(u_view(b, i)), x_dot,
+        Eigen::Matrix<double, D, 1> unused;
+        gen::single_pendulum_dynamics(params[b], x, static_cast<double>(u_view(b, i)), unused,
                                       f_D_x[i], f_D_u[i]);
       }
-      x.noalias() += x_dot * dt;
+
+      // Integrate `x`:
+      x = runge_kutta_4th_order(x, dt, [&](const Eigen::Matrix<double, D, 1>& x_updated) {
+        Eigen::Matrix<double, D, 1> x_dot;
+        if constexpr (D == 6) {
+          gen::double_pendulum_dynamics(params[b], x_updated, static_cast<double>(u_view(b, i)),
+                                        x_dot, nullptr, nullptr);
+        } else {
+          gen::single_pendulum_dynamics(params[b], x_updated, static_cast<double>(u_view(b, i)),
+                                        x_dot, nullptr, nullptr);
+        }
+        return x_dot;
+      });
 
       for (std::size_t dim = 0; dim < D; ++dim) {
         F_ASSERT_LT(static_cast<std::size_t>(x_out.compute_index(b, i, dim)),
