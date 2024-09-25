@@ -7,3 +7,6 @@
 [submodule "model/pendulum_dynamics/dependencies/fmt"]
 	path = wrapper/dependencies/fmt
 	url = https://github.com/fmtlib/fmt.git
+[submodule "wrapper/dependencies/gtest"]
+	path = wrapper/dependencies/gtest
+	url = https://github.com/google/googletest.git

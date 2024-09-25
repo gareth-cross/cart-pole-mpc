@@ -21,6 +21,17 @@ function(add_eigen)
 endfunction()
 add_eigen()
 
+function(add_gtest)
+  set(BUILD_GMOCK
+      OFF
+      CACHE BOOL "" FORCE)
+  set(INSTALL_GTEST
+      OFF
+      CACHE BOOL "" FORCE)
+  add_subdirectory(gtest)
+endfunction()
+add_gtest()
+
 # Create an interface library for the wrenfold runtime headers.
 function(add_wrenfold_headers)
   add_library(wrenfold-runtime INTERFACE)
