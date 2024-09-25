@@ -3,28 +3,35 @@ Visualize some things.
 """
 
 import matplotlib.pyplot as plt
-import torch as th
 import numpy as np
+import torch as th
 
-from .train import DynamicsLayer, EnergyLoss
+from .train import DynamicsLayer, EnergyLoss, Network
 
 
 def main():
     window_len = 6000
     step_size = 0.001
+
     u_controls = th.zeros((1, window_len), dtype=th.float32, requires_grad=True)
     x0_initial = th.zeros((1, 4), dtype=u_controls.dtype)
     params = th.tensor(
-        [1.0, 1.0, 0.0, 0.50, 0.0, 9.81], dtype=u_controls.dtype
+        [10.0, 0.25, 0.25, 0.15, 0.15, 9.81], dtype=u_controls.dtype
     ).reshape((1, -1))
 
     # set the initial condition
-    x0_initial = th.tensor([0.0, -np.pi / 2.0, 0.0, 0.0], dtype=th.float32).reshape(
-        [1, -1]
-    )
+    x0_initial = th.tensor(
+        [0.0, np.pi / 2.0 + 0.1, 0.0, 0.0], dtype=th.float32
+    ).reshape([1, -1])
 
     # set the control input to:
-    u_controls = th.ones((1, window_len), dtype=th.float32, requires_grad=True) * 1.0
+    # u_controls = th.ones((1, window_len), dtype=th.float32, requires_grad=True) * 1.0
+
+    network = Network(input_dim=4)
+
+    import ipdb
+
+    ipdb.set_trace()
 
     x_out = DynamicsLayer.apply(params, step_size, u_controls, x0_initial)
 

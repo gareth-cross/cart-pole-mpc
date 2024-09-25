@@ -3,6 +3,7 @@ Train a model to control double pendulum.
 """
 
 import argparse
+import json
 import typing as T
 from pathlib import Path
 
@@ -42,7 +43,7 @@ class DynamicsLayer(th.autograd.Function):
             params_structs.append(PendulumParams(*row))
 
         if x0_states.shape[-1] == 4:
-            x_out, x_D_u = evaluate_forward_dynamics_single(
+            x_out, x_D_u, x_D_x0 = evaluate_forward_dynamics_single(
                 params_structs, dt, u_controls.detach().cpu(), x0_states
             )
         else:
@@ -51,40 +52,66 @@ class DynamicsLayer(th.autograd.Function):
             )
 
         # Save the derivatives for the backward pass:
-        ctx.save_for_backward(th.tensor(x_D_u, dtype=th.float32))
+        ctx.save_for_backward(th.tensor(x_D_u, dtype=th.float32),
+                              th.tensor(x_D_x0, dtype=th.float32))
         return th.tensor(x_out, dtype=th.float32)
 
     @staticmethod
-    def backward(ctx, grad_output: th.Tensor):
+    def backward(ctx, loss_D_x: th.Tensor):
         # `u_controls` had shape (B, N).
-        # `grad_output` will have shape (B, N, D), the same as `x_out`.
+        # `loss_D_x` will have shape (B, N, D), the same as `x_out`.
         # We need to output something with the same shape as `u_controls`: (B, N)
-        (x_D_u,) = ctx.saved_tensors
+        (x_D_u, x_D_x0) = ctx.saved_tensors
 
         # x_D_u is ordered over: [batch, x_out, u_control, D]
         # We swap it such that the last two dims are: [..., x_out, D]
         x_D_u = th.permute(x_D_u, (0, 2, 1, 3))
 
-        # Insert a new dimension and multiply loss_D_x with x_D_u
-        grad_result = th.multiply(grad_output[:, None, :, :], x_D_u)
+        # Compute grad_u, which will be [B, N] dimension.
+        # Insert a new dimension and multiply loss_D_x with x_D_u.
+        # (B, 1, N, D) * (B, N, N, D) --> (B, N, N, D)
+        # This broadcasts over the `u` dimension while multiplying over the (x_out, D) dims.
+        loss_D_u = th.multiply(loss_D_x[:, None, :, :], x_D_u)
 
         # For each `u`, sum over all `xs` and complete the 1xD * Dx1 chain rule of:
         #   loss_D_x[i] * x[i]_D_u
-        grad_result = th.sum(grad_result, dim=[-2, -1])
+        loss_D_u = th.sum(loss_D_u, axis=[-2, -1])
 
-        # only `u_controls` will have derivatives:
-        return None, None, grad_result, None
+        # Compute the (B, N, D) chain rule:
+        #   loss_D_x[i] * x[i]_D_x0
+        #   (B, N, 1, D) @ (B, N, D, D) --> (B, N, 1, D)
+        loss_D_x0 = th.matmul(loss_D_x[:, :, None, :], x_D_x0)
+        
+        # Sum: (B, N, 1, D) --> (B, D)
+        loss_D_x0 = th.sum(loss_D_x0, axis=[1, 2])
+
+        return None, None, loss_D_u, loss_D_x0
 
 
 class EnergyLoss(nn.Module):
     """Evaluate loss based on Lagrangian of the pendulum."""
 
-    def __init__(self, is_single: bool):
+    def __init__(self, is_single: bool, weighting_curve: str):
         super().__init__()
         self.is_single = is_single
+        self.weighting_curve = weighting_curve
 
-    @staticmethod
-    def evaluate_single_loss(params: th.Tensor, x_states: th.Tensor):
+    def get_time_weighting_curve(self, N: int) -> th.Tensor:
+        if self.weighting_curve == "smoothstep":
+            lin_spaced = th.linspace(0.0, 1.0, N, dtype=th.float32)[None, ...]
+            weighting = 3 * (lin_spaced**2) - 2 * (lin_spaced**3)
+        elif self.weighting_curve == "last":
+            weighting = th.zeros(size=(1, N), dtype=th.float32)
+            weighting[:, -1] = 1.0
+        else:
+            raise RuntimeError(f"Invalid weighting function: {self.weighting_curve}")
+
+        weighting = weighting / th.sum(weighting)
+        return weighting
+
+    def evaluate_single_loss(
+        self, params: th.Tensor, x_states: th.Tensor, u_controls: th.Tensor
+    ) -> T.Tuple[th.Tensor, T.Dict]:
         """Energy loss for the single pendulum cart-pole system."""
         assert x_states.shape[-1] == 4, "Should be a 4 dimensional state"
 
@@ -116,15 +143,30 @@ class EnergyLoss(nn.Module):
 
         # Loss is weighted higher as time increases:
         _, N = T.shape
-        if False:
-            lin_spaced = th.linspace(0.0, 1.0, N, dtype=T.dtype)[None, ...]
-            weighting = 3 * (lin_spaced**2) - 2 * (lin_spaced**3)
-        else:
-            weighting = th.zeros(size=(1, N), dtype=T.dtype)
-            weighting[:, -1] = 1.0
+        weighting = self.get_time_weighting_curve(N=N).to(dtype=th_1.dtype)
 
-        loss = th.mean((T - V) * weighting) / th.sum(weighting)
-        return (loss, th.mean(T), th.mean(V))
+        control_derivative = th.diff(u_controls, axis=-1)
+        controls_loss = th.sum(th.abs(control_derivative))
+
+        # translation_loss = th.sum(th.abs(b_x) * weighting)
+
+        translation_loss = th.sum(th.mean(b_x, axis=-1))
+
+        loss = th.sum((T - V) * weighting) + \
+            translation_loss * 0.0 + \
+            controls_loss * 0.0
+
+        max_base_speed, _ = th.max(b_x_dot, axis=1)
+        values_out = dict(
+            weighted_kinetic=th.mean(th.sum(T * weighting, axis=-1)),
+            weighted_potential=th.mean(th.sum(V * weighting, axis=-1)),
+            weighted_abs_translation=th.mean(th.sum(th.abs(b_x) * weighting, axis=-1)),
+            final_kinetic=th.mean(T[:, -1]),
+            final_potential=th.mean(V[:, -1]),
+            max_b_x_dot=th.mean(max_base_speed),
+            loss=loss,
+        )
+        return (loss, values_out)
 
     @staticmethod
     def evaluate_double_loss(params: th.Tensor, x_states: th.Tensor):
@@ -178,9 +220,9 @@ class EnergyLoss(nn.Module):
 
         return (loss, th.mean(T), th.mean(V))
 
-    def forward(self, params: th.Tensor, x_states: th.Tensor):
+    def forward(self, params: th.Tensor, x_states: th.Tensor, u_controls: th.Tensor):
         if self.is_single:
-            return self.evaluate_single_loss(params=params, x_states=x_states)
+            return self.evaluate_single_loss(params=params, x_states=x_states, u_controls=u_controls)
         else:
             return self.evaluate_double_loss(params=params, x_states=x_states)
 
@@ -190,12 +232,34 @@ class Network(nn.Module):
 
     def __init__(self, input_dim: int) -> None:
         super().__init__()
-        self.something = nn.Sequential(
-            nn.Linear(input_dim, 64), nn.Tanh(), nn.Linear(64, 200)
-        )
+        self.layer0 = nn.Linear(input_dim, 128)
+        self.layer1 = nn.Linear(256, 128)
+        self.layer2 = nn.Linear(256, 128)
+        self.output_layer = nn.Linear(128, 400)
 
     def forward(self, x_initial_states: th.Tensor) -> th.Tensor:
-        return self.something(x_initial_states)
+        l0 = self.layer0(x_initial_states)
+        l1 = self.layer1(th.concatenate([nn.functional.tanh(l0), l0], axis=-1))
+        l2 = self.layer2(th.concatenate([nn.functional.tanh(l1), l1], axis=-1))
+        return self.output_layer(l2)
+
+
+class ControlNetwork(nn.Module):
+    """Network to control the pendulum."""
+
+    def __init__(self, input_dim: int) -> None:
+        super().__init__()
+        self.layer0 = nn.Linear(input_dim, 32)
+        self.layer1 = nn.Linear(32, 32)
+        self.layer2 = nn.Linear(32, 32)
+        self.output_layer = nn.Linear(32, 1)
+
+    def forward(self, x_initial_states: th.Tensor) -> th.Tensor:
+        l0 = self.layer0(x_initial_states)
+        l1 = self.layer1(nn.functional.relu(l0))
+        l2 = self.layer2(nn.functional.relu(l1))
+        result = self.output_layer(l2)
+        return result
 
 
 class Monitor(TensorBoardLogger):
@@ -222,14 +286,14 @@ class Monitor(TensorBoardLogger):
 
 class System(pl.LightningModule):
 
-    def __init__(
-        self, hparams: argparse.Namespace, monitor: T.Optional[Monitor] = None
-    ):
+    def __init__(self, hparams: T.Dict, monitor: T.Optional[Monitor] = None):
         super().__init__()
-        self.is_single = hparams.version == "single"
-        self.model = Network(input_dim=4 if self.is_single else 6)
+        self.is_single = hparams["version"] == "single"
+        self.model = ControlNetwork(input_dim=4 if self.is_single else 6)
         self.monitor = monitor
-        self.energy_loss = EnergyLoss(is_single=self.is_single)
+        self.energy_loss = EnergyLoss(
+            is_single=self.is_single, weighting_curve="last"
+        )
         self.save_hyperparameters(hparams)
 
     def configure_optimizers(self):
@@ -237,18 +301,33 @@ class System(pl.LightningModule):
 
     def training_step(self, batch):
         # (1) Query network for trajectory:
-        u_output = self.model(batch["x0_state"])
+        # u_output = self.model(batch["x0_state"])
 
         # (2) Integrate the dynamics model:
-        x_out = DynamicsLayer.apply(batch["params"], 0.01, u_output, batch["x0_state"])
+        # x_out = DynamicsLayer.apply(batch["params"], 0.01, u_output, batch["x0_state"])
+
+        dt = 0.01
+        window_len = 150
+        x = batch["x0_state"]
+        control_inputs = []
+        x_out = []
+        for _ in range(0, window_len):
+            u_control = self.model(x)
+            x = DynamicsLayer.apply(batch["params"], dt, u_control, x)
+            x = th.squeeze(x, axis=1)
+            control_inputs.append(u_control)
+            x_out.append(x)
+
+        x_stacked = th.stack(x_out, axis=1)
+        loss, values = self.energy_loss(batch["params"], x_stacked, th.concatenate(control_inputs, axis=-1))
 
         # (3) Apply loss that minimizes the lagrangian:
-        loss, kinetic, potential = self.energy_loss(batch["params"], x_out)
+        # loss, values = self.energy_loss(batch["params"], x_out)
 
         with th.no_grad():
             self.training_log(
                 batch=batch,
-                values=dict(loss=loss, kinetic=kinetic, potential=potential),
+                values=values,
             )
 
         return loss
@@ -266,7 +345,7 @@ class DataModule(pl.LightningDataModule):
         self,
         version: str,
         num_examples: int,
-        batch_size: int = 16,
+        batch_size: int = 128,
         num_workers: int = 0,
     ):
         super().__init__()
@@ -274,10 +353,15 @@ class DataModule(pl.LightningDataModule):
         self.num_examples = num_examples
         self.batch_size = batch_size
         self.num_workers = num_workers
-        # Initially start states at zero:
+
+        # Initially start states at zero w/ random angles.
         self.train_dataset = np.zeros(
             shape=(num_examples, 4 if self.version == "single" else 6), dtype=np.float32
         )
+        self.train_dataset[:, 1] = np.random.uniform(
+            low=np.pi / 2 - 0.2, high=np.pi / 2 + 0.2, size=len(self.train_dataset)
+        )
+
         # Apply same pendulum params to every example for now.
         self.params = PendulumParams()
         self.params.m_b = 10.0
@@ -323,10 +407,13 @@ class DataModule(pl.LightningDataModule):
 
 def main(args: argparse.Namespace):
     pl.seed_everything(7)
-    data_module = DataModule(version=args.version, num_examples=100000)
+    data_module = DataModule(version=args.version, num_examples=200000)
     callbacks = [ModelCheckpoint(save_last=True)]
     monitor = Monitor(run_dir=SCRIPT_PATH / "logs")
-    system = System(hparams=args, monitor=monitor)
+    system = System(hparams=dict(**vars(args)), monitor=monitor)
+    # system = System.load_from_checkpoint('model/logs/lightning_logs/version_0/checkpoints/last.ckpt')
+    system.monitor = monitor
+
     trainer = pl.Trainer(max_epochs=10, logger=monitor, callbacks=callbacks)
     trainer.fit(model=system, train_dataloaders=data_module.train_dataloader())
 
