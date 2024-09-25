@@ -14,8 +14,10 @@ add_subdirectory(dependencies)
 
 if(MSVC)
   set(WARNING_FLAGS /W4 /WX)
+  set(COMPILER_FLAGS /bigobj /EHs /Zc:__cplusplus)
 else()
   set(WARNING_FLAGS -Wall -Wextra -pedantic -Werror -Wno-sign-compare)
+  set(COMPILER_FLAGS "")
 endif()
 
 # The main wrapper module.
@@ -31,8 +33,9 @@ nanobind_add_module(
 target_compile_features(${MODULE_NAME} PRIVATE cxx_std_17)
 target_link_libraries(${MODULE_NAME} PRIVATE fmt::fmt-header-only eigen
                                              wrenfold::wrenfold-runtime)
-target_compile_options(${MODULE_NAME} PRIVATE ${WARNING_FLAGS})
+target_compile_options(${MODULE_NAME} PRIVATE ${WARNING_FLAGS} ${COMPILER_FLAGS})
 target_compile_definitions(${MODULE_NAME} PRIVATE PY_MODULE_NAME=${MODULE_NAME})
+target_compile_definitions(${MODULE_NAME} PRIVATE -D_USE_MATH_DEFINES)
 
 if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT MSVC)
   target_compile_options(${MODULE_NAME} PRIVATE -O3)
@@ -47,5 +50,5 @@ target_compile_features(integration_test PRIVATE cxx_std_17)
 target_link_libraries(
   integration_test PRIVATE fmt::fmt-header-only eigen gtest_main
                            wrenfold::wrenfold-runtime)
-target_compile_options(integration_test PRIVATE ${WARNING_FLAGS})
+target_compile_options(integration_test PRIVATE ${WARNING_FLAGS} ${COMPILER_FLAGS})
 add_test(integration_test integration_test)
