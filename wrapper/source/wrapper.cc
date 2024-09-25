@@ -30,6 +30,7 @@ BEGIN_THIRD_PARTY_INCLUDES
 END_THIRD_PARTY_INCLUDES
 
 #include "assertions.hpp"
+#include "integration.hpp"
 
 #define WF_SPAN_EIGEN_SUPPORT
 #include "dynamics_double.hpp"
@@ -38,13 +39,15 @@ END_THIRD_PARTY_INCLUDES
 namespace nb = nanobind;
 namespace pendulum {
 
-template <typename X, typename F>
-X runge_kutta_4th_order(const X& x, const double h, F&& f) {
-  const X k1 = f(x);
-  const X k2 = f(x + k1 * h / 2.0);
-  const X k3 = f(x + k2 * h / 2.0);
-  const X k4 = f(x + h * k3);
-  return x + (h / 6.0) * (k1 + k2 * 2.0 + k3 * 2.0 + k4);
+template <typename Scalar>
+Scalar mod_pi(Scalar angle) {
+  static_assert(std::is_floating_point_v<Scalar>);
+  constexpr Scalar pi = static_cast<Scalar>(M_PI);
+  constexpr Scalar two_pi = 2 * pi;
+  angle = std::fmod(angle, two_pi);
+  angle += (angle < 0) * two_pi;   //  Map to [0, 2pi]
+  angle -= (angle > pi) * two_pi;  //  Map to (-pi, pi].
+  return angle;
 }
 
 // We need to evaluate the forward dynamics model over a set of timesteps.
@@ -110,37 +113,35 @@ auto evaluate_forward_dynamics(
       x[d] = x0_view(b, d);
     }
 
-    // Storage for jacobians of f(x, u) wrt x and u, where d(x)/dt = f(x, u)
+    // Storage for jacobians of our integration method.
     std::vector<Eigen::Matrix<double, D, D>> f_D_x(N);
     std::vector<Eigen::Matrix<double, D, 1>> f_D_u(N);
 
     // Integrate forward.
-    // This is just a simple euler integration, but our horizon is not that long so it might be
-    // ok?
     for (std::size_t i = 0; i < N; ++i) {
-      // Compute derivatives:
+      // Integrate `x` and compute derivatives.
       if constexpr (D == 6) {
-        Eigen::Matrix<double, D, 1> unused;
-        gen::double_pendulum_dynamics(params[b], x, static_cast<double>(u_view(b, i)), unused,
-                                      f_D_x[i], f_D_u[i]);
+        std::tie(x, f_D_x[i], f_D_u[i]) = runge_kutta_4th_order(
+            x, static_cast<double>(u_view(b, i)), dt,
+            [&](const Eigen::Matrix<double, D, 1>& x_updated, const double u,
+                Eigen::Matrix<double, D, D>& x_dot_D_x, Eigen::Matrix<double, D, 1>& x_dot_D_u) {
+              Eigen::Matrix<double, D, 1> x_dot;
+              gen::double_pendulum_dynamics(params[b], x_updated, u, x_dot, x_dot_D_x, x_dot_D_u);
+              return x_dot;
+            });
+        x[1] = mod_pi(x[1]);
+        x[2] = mod_pi(x[2]);
       } else {
-        Eigen::Matrix<double, D, 1> unused;
-        gen::single_pendulum_dynamics(params[b], x, static_cast<double>(u_view(b, i)), unused,
-                                      f_D_x[i], f_D_u[i]);
+        std::tie(x, f_D_x[i], f_D_u[i]) = runge_kutta_4th_order(
+            x, static_cast<double>(u_view(b, i)), dt,
+            [&](const Eigen::Matrix<double, D, 1>& x_updated, const double u,
+                Eigen::Matrix<double, D, D>& x_dot_D_x, Eigen::Matrix<double, D, 1>& x_dot_D_u) {
+              Eigen::Matrix<double, D, 1> x_dot;
+              gen::single_pendulum_dynamics(params[b], x_updated, u, x_dot, x_dot_D_x, x_dot_D_u);
+              return x_dot;
+            });
+        x[1] = mod_pi(x[1]);
       }
-
-      // Integrate `x`:
-      x = runge_kutta_4th_order(x, dt, [&](const Eigen::Matrix<double, D, 1>& x_updated) {
-        Eigen::Matrix<double, D, 1> x_dot;
-        if constexpr (D == 6) {
-          gen::double_pendulum_dynamics(params[b], x_updated, static_cast<double>(u_view(b, i)),
-                                        x_dot, nullptr, nullptr);
-        } else {
-          gen::single_pendulum_dynamics(params[b], x_updated, static_cast<double>(u_view(b, i)),
-                                        x_dot, nullptr, nullptr);
-        }
-        return x_dot;
-      });
 
       for (std::size_t dim = 0; dim < D; ++dim) {
         F_ASSERT_LT(static_cast<std::size_t>(x_out.compute_index(b, i, dim)),
@@ -150,11 +151,11 @@ auto evaluate_forward_dynamics(
     }
 
     // Now we do the derivative computation. We have:
-    //  x(k + 1) = x(k) + f(x_k, u_k) * dt
+    //  x(k + 1) = rk4(x_k, u_k)
     //
     // So:
-    //  dx(k+1)/dx(k) = Identity + f_D_x * dt
-    //  dx(k+1)/du(k) = f_D_u * dt
+    //  dx(k+1)/dx(k) = d[rk4(x_k, u_k)]/dx_k
+    //  dx(k+1)/du(k) = d[rk4(x_k, u_k)]/du_k
     //
     // We can chain rule this over time to compute the jacobian of any timestep wrt the control
     // inputs that came before it. This is similar to the propagation in a direct-shooting
@@ -162,7 +163,7 @@ auto evaluate_forward_dynamics(
     //
     // We iterate with `i` over the control inputs, u(i):
     for (std::size_t i = 0; i < N; ++i) {
-      Eigen::Matrix<double, D, 1> f_D_u_i = f_D_u[i] * dt;
+      Eigen::Matrix<double, D, 1> f_D_u_i = f_D_u[i];
 
       // We iterate with `j` over the output states, x(j).
       // Note that x(j) is the state _after_ the integration of u(j).
@@ -175,7 +176,7 @@ auto evaluate_forward_dynamics(
           x_D_u_out(b, j, i, dim) = f_D_u_i[dim];
         }
         // Propagate forward derivative of the output state wrt our control input at time `i`.
-        f_D_u_i = ((Eigen::Matrix<double, D, D>::Identity() + f_D_x[j] * dt) * f_D_u_i).eval();
+        f_D_u_i = (f_D_x[j] * f_D_u_i).eval();
       }
     }
   }  //  End of iteration over batch.
