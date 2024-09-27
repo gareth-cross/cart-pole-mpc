@@ -86,10 +86,12 @@ auto evaluate_forward_dynamics(
   struct data_storage {
     explicit data_storage(std::size_t batch_size, std::size_t num_states, std::size_t state_dim)
         : x_data(batch_size * num_states * state_dim),
-          x_D_u_data(batch_size * num_states * num_states * state_dim) {}
+          x_D_u_data(batch_size * num_states * num_states * state_dim),
+          x_D_x0_data(batch_size * num_states * state_dim * state_dim) {}
 
     std::vector<double> x_data;
-    std::vector<double> x_D_u_data;
+    std::vector<double> x_D_u_data;   // [B, N, N, D] derivative of all output `X` wrt input `U`.
+    std::vector<double> x_D_x0_data;  // [B, N, D, D] derivative of all output `X` wrt initial `X0`.
   };
   data_storage* const storage = new data_storage(B, N, D);
 
@@ -98,12 +100,15 @@ auto evaluate_forward_dynamics(
                       [](void* p) noexcept { delete static_cast<const data_storage*>(p); });
 
   // Create spans over the output arrays.
-  const auto x_out =
-      wf::make_span(storage->x_data.data(), wf::make_value_pack(B, N, wf::constant<D>{}),
-                    wf::make_value_pack(N * D, D, wf::constant<1>{}));
-  const auto x_D_u_out =
-      wf::make_span(storage->x_D_u_data.data(), wf::make_value_pack(B, N, N, wf::constant<D>{}),
-                    wf::make_value_pack(N * N * D, N * D, D, wf::constant<1>{}));
+  constexpr wf::constant<D> _D{};
+  constexpr wf::constant<1> _1{};
+  const auto x_out = wf::make_span(storage->x_data.data(), wf::make_value_pack(B, N, _D),
+                                   wf::make_value_pack(N * D, _D, _1));
+  const auto x_D_u_out = wf::make_span(storage->x_D_u_data.data(), wf::make_value_pack(B, N, N, _D),
+                                       wf::make_value_pack(N * N * D, N * D, _D, _1));
+  const auto x_D_x0_out =
+      wf::make_span(storage->x_D_x0_data.data(), wf::make_value_pack(B, N, _D, _D),
+                    wf::make_value_pack(N * D * D, D * D, _D, _1));
 
   // Iterate over batch elements:
   for (std::size_t b = 0; b < B; ++b) {
@@ -179,11 +184,27 @@ auto evaluate_forward_dynamics(
         f_D_u_i = (f_D_x[j] * f_D_u_i).eval();
       }
     }
+
+    // Iterate over states to get the total derivative wrt the input state:
+    Eigen::Matrix<double, D, D> x_i_D_x0 = Eigen::Matrix<double, D, D>::Identity();
+    for (std::size_t i = 0; i < N; ++i) {
+      x_i_D_x0 = (f_D_x[i] * x_i_D_x0).eval();
+      // TODO: Could do this by assigning directly to an Eigen::Map...
+      for (std::size_t row = 0; row < D; ++row) {
+        for (std::size_t col = 0; col < D; ++col) {
+          F_ASSERT_LT(static_cast<std::size_t>(x_D_x0_out.compute_index(b, i, row, col)),
+                      storage->x_D_x0_data.size(),
+                      "b = {}, i = {}, row = {}, col = {}, N = {}, D = {}", b, i, row, col, N, D);
+          x_D_x0_out(b, i, row, col) = x_i_D_x0(row, col);
+        }
+      }
+    }
   }  //  End of iteration over batch.
 
   return nb::make_tuple(
       nb::ndarray<nb::numpy, const double>(x_out.data(), {B, N, D}, capsule),
-      nb::ndarray<nb::numpy, const double>(x_D_u_out.data(), {B, N, N, D}, capsule));
+      nb::ndarray<nb::numpy, const double>(x_D_u_out.data(), {B, N, N, D}, capsule),
+      nb::ndarray<nb::numpy, const double>(x_D_x0_out.data(), {B, N, D, D}, capsule));
 }
 
 }  // namespace pendulum
