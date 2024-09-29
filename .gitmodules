@@ -10,3 +10,6 @@
 [submodule "wrapper/dependencies/gtest"]
 	path = dependencies/gtest
 	url = https://github.com/google/googletest.git
+[submodule "dependencies/mini_opt"]
+	path = dependencies/mini_opt
+	url = git@github.com:gareth-cross/mini_opt.git
