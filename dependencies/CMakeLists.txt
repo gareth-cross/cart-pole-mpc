@@ -1,19 +1,16 @@
 function(add_libfmt)
-  set(FMT_TEST
-      OFF
-      CACHE BOOL "" FORCE) # Turn off libfmt tests
-  add_subdirectory(fmt EXCLUDE_FROM_ALL) # Don't need to install.
+  if(NOT TARGET fmt::fmt)
+    set(FMT_TEST
+        OFF
+        CACHE BOOL "" FORCE)
+    add_subdirectory(fmt EXCLUDE_FROM_ALL)
+  endif()
 endfunction()
 add_libfmt()
 
-function(add_nanobind)
-  add_subdirectory(nanobind)
-endfunction()
-add_nanobind()
-
 function(add_eigen)
-  set(EIGEN_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/eigen")
   if(NOT TARGET eigen)
+    set(EIGEN_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/eigen")
     add_library(eigen INTERFACE IMPORTED GLOBAL)
     set_target_properties(eigen PROPERTIES INTERFACE_INCLUDE_DIRECTORIES
                                            "${EIGEN_INCLUDE_DIRS}")
@@ -22,15 +19,22 @@ endfunction()
 add_eigen()
 
 function(add_gtest)
-  set(BUILD_GMOCK
-      OFF
-      CACHE BOOL "" FORCE)
-  set(INSTALL_GTEST
-      OFF
-      CACHE BOOL "" FORCE)
-  add_subdirectory(gtest)
+  if(NOT TARGET gtest)
+    set(BUILD_GMOCK
+        OFF
+        CACHE BOOL "" FORCE)
+    set(INSTALL_GTEST
+        OFF
+        CACHE BOOL "" FORCE)
+    add_subdirectory(gtest)
+  endif()
 endfunction()
 add_gtest()
+
+function(add_nanobind)
+  add_subdirectory(nanobind)
+endfunction()
+add_nanobind()
 
 # Create an interface library for the wrenfold runtime headers.
 function(add_wrenfold_headers)

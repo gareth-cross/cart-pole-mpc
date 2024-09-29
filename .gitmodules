@@ -1,12 +1,12 @@
 [submodule "model/pendulum_dynamics/dependencies/nanobind"]
-	path = wrapper/dependencies/nanobind
+	path = dependencies/nanobind
 	url = https://github.com/wjakob/nanobind.git
 [submodule "model/pendulum_dynamics/dependencies/eigen"]
-	path = wrapper/dependencies/eigen
+	path = dependencies/eigen
 	url = https://gitlab.com/libeigen/eigen.git
 [submodule "model/pendulum_dynamics/dependencies/fmt"]
-	path = wrapper/dependencies/fmt
+	path = dependencies/fmt
 	url = https://github.com/fmtlib/fmt.git
 [submodule "wrapper/dependencies/gtest"]
-	path = wrapper/dependencies/gtest
+	path = dependencies/gtest
 	url = https://github.com/google/googletest.git
