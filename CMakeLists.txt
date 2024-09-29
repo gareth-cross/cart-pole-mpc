@@ -21,3 +21,4 @@ else()
 endif()
 
 add_subdirectory(wrapper)
+add_subdirectory(optimization)

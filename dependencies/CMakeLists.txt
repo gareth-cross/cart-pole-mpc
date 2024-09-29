@@ -46,3 +46,9 @@ function(add_wrenfold_headers)
   add_library(wrenfold::wrenfold-runtime ALIAS wrenfold-runtime)
 endfunction()
 add_wrenfold_headers()
+
+# Add mini-opt library.
+function(add_mini_opt)
+  add_subdirectory(mini_opt)
+endfunction()
+add_mini_opt()
