@@ -29,7 +29,8 @@ BEGIN_THIRD_PARTY_INCLUDES
 #include <nanobind/stl/vector.h>
 END_THIRD_PARTY_INCLUDES
 
-#include "assertions.hpp"
+#include "mini_opt/assertions.hpp"
+
 #include "integration.hpp"
 
 #define WF_SPAN_EIGEN_SUPPORT

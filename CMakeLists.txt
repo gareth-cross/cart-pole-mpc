@@ -20,5 +20,5 @@ else()
   set(COMPILER_FLAGS "")
 endif()
 
-add_subdirectory(wrapper)
 add_subdirectory(optimization)
+add_subdirectory(wrapper)
