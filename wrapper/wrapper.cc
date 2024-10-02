@@ -33,9 +33,8 @@ END_THIRD_PARTY_INCLUDES
 
 #include "integration.hpp"
 
-#define WF_SPAN_EIGEN_SUPPORT
-#include "dynamics_double.hpp"
-#include "dynamics_single.hpp"
+#include "double_pendulum_dynamics.hpp"
+#include "single_pendulum_dynamics.hpp"
 
 namespace nb = nanobind;
 namespace pendulum {

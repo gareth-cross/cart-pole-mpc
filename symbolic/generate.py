@@ -31,33 +31,32 @@ class CppCodeGenerator(code_generation.CppGenerator):
 
 def main(args: argparse.Namespace):
     if args.version == "single":
-        func = get_single_pendulum_dynamics()
+        functions = get_single_pendulum_dynamics()
     elif args.version == "double":
-        func = get_double_pendulum_dynamics()
+        functions = get_double_pendulum_dynamics()
 
-    if args.target == "ts":
-        code = code_generation.generate_function(
-            func, generator=TypeScriptCodeGenerator()
-        )
-        with open(
-            REPO_ROOT / "site" / "src" / f"dynamics_{args.version}.ts", "w"
-        ) as handle:
-            handle.write(TYPESCRIPT_PREAMBLE + code)
-    elif args.target == "cpp":
-        code = code_generation.generate_function(func, generator=CppCodeGenerator())
-        output_path = (
-            REPO_ROOT / "pypendulum" / "source" / f"dynamics_{args.version}.hpp"
-        )
-        with open(output_path, "w") as handle:
-            handle.write(
-                CppCodeGenerator.apply_preamble(
-                    code=code, namespace="gen", imports='#include "parameters.hpp"'
-                )
+    for func in functions:
+        if args.target == "ts":
+            code = code_generation.generate_function(
+                func, generator=TypeScriptCodeGenerator()
             )
-            handle.flush()
+            with open(
+                REPO_ROOT / "site" / "src" / f"{func.__name__}.ts", "w"
+            ) as handle:
+                handle.write(TYPESCRIPT_PREAMBLE + code)
+        elif args.target == "cpp":
+            code = code_generation.generate_function(func, generator=CppCodeGenerator())
+            output_path = REPO_ROOT / "optimization" / f"{func.__name__}.hpp"
+            with open(output_path, "w") as handle:
+                handle.write(
+                    CppCodeGenerator.apply_preamble(
+                        code=code, namespace="gen", imports='#include "parameters.hpp"'
+                    )
+                )
+                handle.flush()
 
-        # Format it for good measure:
-        subprocess.check_call(["clang-format", "-i", str(output_path)])
+            # Format it for good measure:
+            subprocess.check_call(["clang-format", "-i", str(output_path)])
 
 
 def parse_args() -> argparse.Namespace:
