@@ -3,9 +3,8 @@
 
 #include <gtest/gtest.h>
 
-#define WF_SPAN_EIGEN_SUPPORT
-#include "dynamics_single.hpp"
 #include "integration.hpp"
+#include "single_pendulum_dynamics.hpp"
 
 namespace pendulum {
 
@@ -46,10 +45,10 @@ auto numerical_jacobian(const Eigen::Matrix<double, XDim, 1>& x, Function func,
 // Test numerical integration of the single pendulum dynamics model.
 TEST(IntegrationTest, TestSingle) {
   const Eigen::Matrix<double, 4, 1> x{1.2, 0.7, 0.4, -0.15};
-  const double u = 0.1;
-  const double dt = 0.01;
+  constexpr double u = 0.1;
+  constexpr double dt = 0.01;
 
-  const PendulumParams params{1.0, 0.1, 0.0, 0.25, 0.0, 9.81};
+  constexpr PendulumParams params{1.0, 0.1, 0.0, 0.25, 0.0, 9.81};
 
   const auto [_, f_D_x, f_D_u] = runge_kutta_4th_order<4>(
       x, u, dt,

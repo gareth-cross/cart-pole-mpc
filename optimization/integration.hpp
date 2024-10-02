@@ -6,6 +6,9 @@
 
 namespace pendulum {
 
+// Perform Runge-Kutta 4th order integration, and compute jacobians wrt state and control inputs.
+// Returns a tuple with:
+//  (x[k+1], x[k+1]_D_x[k], x[k+1]_D_u[k])
 template <int D, typename F>
 auto runge_kutta_4th_order(const Eigen::Matrix<double, D, 1>& x, const double u, const double h,
                            F&& f) {
@@ -24,9 +27,9 @@ auto runge_kutta_4th_order(const Eigen::Matrix<double, D, 1>& x, const double u,
   UJacobian k4_D_u_arg;
 
   const X k1 = f(x, u, k1_D_x, k1_D_u);
-  const X k2 = f(x + k1 * h / 2.0, u, k2_D_x_arg, k2_D_u_arg);
-  const X k3 = f(x + k2 * h / 2.0, u, k3_D_x_arg, k3_D_u_arg);
-  const X k4 = f(x + k3 * h, u, k4_D_x_arg, k4_D_u_arg);
+  const X k2 = f((x + k1 * h / 2.0).eval(), u, k2_D_x_arg, k2_D_u_arg);
+  const X k3 = f((x + k2 * h / 2.0).eval(), u, k3_D_x_arg, k3_D_u_arg);
+  const X k4 = f((x + k3 * h).eval(), u, k4_D_x_arg, k4_D_u_arg);
   const X result = x + (h / 6.0) * (k1 + k2 * 2.0 + k3 * 2.0 + k4);
 
   const auto I = XJacobian::Identity();

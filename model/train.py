@@ -52,8 +52,9 @@ class DynamicsLayer(th.autograd.Function):
             )
 
         # Save the derivatives for the backward pass:
-        ctx.save_for_backward(th.tensor(x_D_u, dtype=th.float32),
-                              th.tensor(x_D_x0, dtype=th.float32))
+        ctx.save_for_backward(
+            th.tensor(x_D_u, dtype=th.float32), th.tensor(x_D_x0, dtype=th.float32)
+        )
         return th.tensor(x_out, dtype=th.float32)
 
     @staticmethod
@@ -81,7 +82,7 @@ class DynamicsLayer(th.autograd.Function):
         #   loss_D_x[i] * x[i]_D_x0
         #   (B, N, 1, D) @ (B, N, D, D) --> (B, N, 1, D)
         loss_D_x0 = th.matmul(loss_D_x[:, :, None, :], x_D_x0)
-        
+
         # Sum: (B, N, 1, D) --> (B, D)
         loss_D_x0 = th.sum(loss_D_x0, axis=[1, 2])
 
@@ -152,9 +153,9 @@ class EnergyLoss(nn.Module):
 
         translation_loss = th.sum(th.mean(b_x, axis=-1))
 
-        loss = th.sum((T - V) * weighting) + \
-            translation_loss * 0.0 + \
-            controls_loss * 0.0
+        loss = (
+            th.sum((T - V) * weighting) + translation_loss * 0.0 + controls_loss * 0.0
+        )
 
         max_base_speed, _ = th.max(b_x_dot, axis=1)
         values_out = dict(
@@ -222,7 +223,9 @@ class EnergyLoss(nn.Module):
 
     def forward(self, params: th.Tensor, x_states: th.Tensor, u_controls: th.Tensor):
         if self.is_single:
-            return self.evaluate_single_loss(params=params, x_states=x_states, u_controls=u_controls)
+            return self.evaluate_single_loss(
+                params=params, x_states=x_states, u_controls=u_controls
+            )
         else:
             return self.evaluate_double_loss(params=params, x_states=x_states)
 
@@ -291,9 +294,7 @@ class System(pl.LightningModule):
         self.is_single = hparams["version"] == "single"
         self.model = ControlNetwork(input_dim=4 if self.is_single else 6)
         self.monitor = monitor
-        self.energy_loss = EnergyLoss(
-            is_single=self.is_single, weighting_curve="last"
-        )
+        self.energy_loss = EnergyLoss(is_single=self.is_single, weighting_curve="last")
         self.save_hyperparameters(hparams)
 
     def configure_optimizers(self):
@@ -319,7 +320,9 @@ class System(pl.LightningModule):
             x_out.append(x)
 
         x_stacked = th.stack(x_out, axis=1)
-        loss, values = self.energy_loss(batch["params"], x_stacked, th.concatenate(control_inputs, axis=-1))
+        loss, values = self.energy_loss(
+            batch["params"], x_stacked, th.concatenate(control_inputs, axis=-1)
+        )
 
         # (3) Apply loss that minimizes the lagrangian:
         # loss, values = self.energy_loss(batch["params"], x_out)
