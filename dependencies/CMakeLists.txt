@@ -29,12 +29,18 @@ function(add_gtest)
     add_subdirectory(gtest)
   endif()
 endfunction()
-add_gtest()
+
+if(NOT BUILD_WITH_EMSCRIPTEN)
+  add_gtest()
+endif()
 
 function(add_nanobind)
   add_subdirectory(nanobind)
 endfunction()
-add_nanobind()
+
+if(NOT BUILD_WITH_EMSCRIPTEN)
+  add_nanobind()
+endif()
 
 # Create an interface library for the wrenfold runtime headers.
 function(add_wrenfold_headers)
@@ -49,6 +55,11 @@ add_wrenfold_headers()
 
 # Add mini-opt library.
 function(add_mini_opt)
+  if(BUILD_WITH_EMSCRIPTEN)
+    set(MINI_OPT_BUILD_TESTS
+        OFF
+        CACHE BOOL "" FORCE)
+  endif()
   add_subdirectory(mini_opt)
 endfunction()
 add_mini_opt()
