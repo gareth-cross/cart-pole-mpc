@@ -1,28 +1,19 @@
 // Copyright 2024 Gareth Cross.
+#include <chrono>
 #include <numeric>
 
 #include <fmt/ostream.h>
 #include <gtest/gtest.h>
 
 #include "integration.hpp"
+#include "optimization.hpp"
+#include "simulator.hpp"
 #include "single_pendulum_dynamics.hpp"
-#include "single_pendulum_energy.hpp"
 
 #include "mini_opt/assertions.hpp"
 #include "mini_opt/logging.hpp"
 #include "mini_opt/nonlinear.hpp"
 #include "mini_opt/residual.hpp"
-
-// Map an angle to (-pi, pi].
-template <typename Scalar, typename = std::enable_if_t<std::is_floating_point_v<Scalar>>>
-Scalar mod_pi(Scalar angle) noexcept {
-  constexpr Scalar pi = static_cast<Scalar>(M_PI);
-  constexpr Scalar two_pi = 2 * pi;
-  angle = std::fmod(angle, two_pi);
-  angle += (angle < 0) * two_pi;   //  Map to [0, 2pi]
-  angle -= (angle > pi) * two_pi;  //  Map to (-pi, pi].
-  return angle;
-}
 
 namespace pendulum {
 
@@ -32,7 +23,7 @@ TEST(OptimizationTest, TestPendulumSystem) {
   constexpr double dt = 0.01;
 
   // Parameters of the pendulum system
-  constexpr PendulumParams params{1.0, 0.1, 0.1, 0.25, 0.25, 9.81};
+  constexpr SingleCartPoleParams params{1.0, 0.1, 0.25, 9.81};
 
   // The initial state of the system:
   const Eigen::Vector4d x0 = (Eigen::Vector4d() << 0.0, M_PI / 4.0, 0.0, 0.0).finished();
@@ -209,7 +200,7 @@ TEST(OptimizationTest, TestCartPoleMultipleShooting) {
   constexpr double dt = 0.01;
 
   // Parameters of the pendulum system
-  constexpr PendulumParams params{1.0, 0.1, 0.1, 0.25, 0.25, 9.81};
+  constexpr SingleCartPoleParams params{1.0, 0.1, 0.25, 9.81};
 
   // The initial state of the system:
   const Eigen::Vector4d x0 = (Eigen::Vector4d() << 0.0, 0.0, 0.0, 0.0).finished();
@@ -423,10 +414,10 @@ TEST(OptimizationTest, TestCartPoleMultipleShootingClosedLoop) {
   constexpr double dt = 0.01;
 
   // Parameters of the pendulum system
-  constexpr PendulumParams params{1.0, 0.1, 0.1, 0.25, 0.25, 9.81};
+  constexpr SingleCartPoleParams params{1.0, 0.1, 0.25, 9.81};
 
   // The initial state of the system:
-  const Eigen::Vector4d x0 = (Eigen::Vector4d() << 0.0, 0.0, 0.0, 0.0).finished();
+  const Eigen::Vector4d x0 = (Eigen::Vector4d() << 0.0, -M_PI / 2, 0.0, 0.0).finished();
 
   // Total # of parameters:
   constexpr std::size_t state_multiplier = 5;
@@ -444,7 +435,7 @@ TEST(OptimizationTest, TestCartPoleMultipleShootingClosedLoop) {
   std::vector<Eigen::Vector4d> states{};
   states.push_back(x_current);
   std::vector<double> controls{};
-  for (std::size_t t = 0; t < 600; ++t) {
+  for (std::size_t t = 0; t < 200; ++t) {
     problem.clear();
 
     for (std::size_t i = 0; i + 1 < num_states; ++i) {
@@ -652,14 +643,21 @@ TEST(OptimizationTest, TestCartPoleMultipleShootingClosedLoop) {
     }
     guess[guess.rows() - 1] = guess[guess.rows() - 2];
 
+    const auto start = std::chrono::steady_clock::now();
     const mini_opt::NLSSolverOutputs outputs = nls.Solve(p, guess);
 
     std::cout << fmt::format("Termination state: {} @ {}\n",
                              fmt::streamed(outputs.termination_state), t);
-    if (outputs.termination_state == mini_opt::NLSTerminationState::MAX_ITERATIONS ||
-        (t >= 236 && t <= 278)) {
-      std::cout << logger.GetString();
-    }
+
+    const auto end = std::chrono::steady_clock::now();
+
+    fmt::print("duration (iter = {}): {}\n", t,
+               std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1.0e6);
+
+    // if (outputs.termination_state == mini_opt::NLSTerminationState::MAX_ITERATIONS ||
+    //     (t >= 236 && t <= 278)) {
+    //   std::cout << logger.GetString();
+    // }
 
     // if (true) {
     //   fmt::print("x_initial = [{}]\n", fmt::join(x_current, ", "));
@@ -718,6 +716,54 @@ TEST(OptimizationTest, TestCartPoleMultipleShootingClosedLoop) {
   //                  .format(
   //                      Eigen::IOFormat(Eigen::FullPrecision, 0, ", ", ",\n", "[", "]", "[", "]"))
   //           << std::endl;
+}
+
+// --------------------------------------------
+
+TEST(OptimizationTest, TestCartPoleMultipleShootingClosedLoop2) {
+  constexpr std::size_t num_steps = 200;
+
+  OptimizationParams optimization_params{};
+  optimization_params.control_dt = 0.01;
+  optimization_params.window_length = 50;
+  optimization_params.state_spacing = 5;
+
+  // Parameters of the pendulum system
+  constexpr SingleCartPoleParams dynamics_params{1.0, 0.1, 0.25, 9.81};
+
+  // The initial state of the system:
+  constexpr SingleCartPoleState x0{0.0, -M_PI / 2, 0.0, 0.0};
+
+  std::vector<SingleCartPoleState> states{};
+  states.reserve(num_steps);
+  states.push_back(x0);
+
+  std::vector<double> controls{};
+  controls.reserve(num_steps);
+
+  // Simulator will track state and integrate forward.
+  Simulator sim{dynamics_params};
+  sim.SetState(x0);
+
+  Optimization optimization{optimization_params};
+
+  for (std::size_t t = 0; t < num_steps; ++t) {
+    // Step the optimization and compute a control output:
+    const auto [outcome, u] = optimization.Step(sim.GetState(), dynamics_params);
+
+    sim.Step(optimization_params.control_dt, u);
+
+    states.push_back(sim.GetState());
+    controls.push_back(u);
+  }
+
+  fmt::print("controls: [[{}]]\n", fmt::join(controls, ", "));
+  fmt::print("---\n");
+  fmt::print("[\n");
+  for (const auto& state : states) {
+    fmt::print("[{}, {}, {}, {}],\n", state.b_x, state.th_1, state.b_x_dot, state.th_1_dot);
+  }
+  fmt::print("]\n");
 }
 
 }  // namespace pendulum
