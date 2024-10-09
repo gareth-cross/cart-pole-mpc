@@ -48,7 +48,7 @@ TEST(IntegrationTest, TestSingle) {
   constexpr double u = 0.1;
   constexpr double dt = 0.01;
 
-  constexpr PendulumParams params{1.0, 0.1, 0.0, 0.25, 0.0, 9.81};
+  constexpr SingleCartPoleParams params{1.0, 0.1, 0.25, 9.81};
 
   const auto [_, f_D_x, f_D_u] = runge_kutta_4th_order<4>(
       x, u, dt,

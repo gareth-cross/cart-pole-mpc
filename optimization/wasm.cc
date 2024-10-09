@@ -2,8 +2,7 @@
 // WASM module for interacting with the controller.
 #include <emscripten/bind.h>
 
-#include "integration.hpp"
-#include "single_pendulum_dynamics.hpp"
+#include "simulator.hpp"
 
 #include "mini_opt/logging.hpp"
 #include "mini_opt/nonlinear.hpp"
@@ -11,6 +10,7 @@
 
 namespace pendulum {
 
+#if 0
 void optimize() {
   mini_opt::Problem problem{};
   problem.dimension = 1;
@@ -30,9 +30,30 @@ void optimize() {
   const mini_opt::NLSSolverOutputs outputs = nls.Solve(p, u_params);
   fmt::print("number of iterations: {}\n", outputs.num_iterations);
 }
+#endif
 
 }  // namespace pendulum
 
 namespace em = emscripten;
 
-EMSCRIPTEN_BINDINGS(OptimizationWasm) { em::function("optimize", &pendulum::optimize); }
+EMSCRIPTEN_BINDINGS(OptimizationWasm) {
+  em::class_<pendulum::SingleCartPoleState>("SingleCartPoleState")
+      .constructor<double, double, double, double>()
+      .property("b_x", &pendulum::SingleCartPoleState::b_x)
+      .property("th_1", &pendulum::SingleCartPoleState::th_1)
+      .property("b_x_dot", &pendulum::SingleCartPoleState::b_x_dot)
+      .property("th_1_dot", &pendulum::SingleCartPoleState::th_1_dot);
+
+  em::class_<pendulum::SingleCartPoleParams>("SingleCartPoleParams")
+      .constructor<double, double, double, double>()
+      .property("m_b", &pendulum::SingleCartPoleParams::m_b)
+      .property("m_1", &pendulum::SingleCartPoleParams::m_1)
+      .property("l_1", &pendulum::SingleCartPoleParams::l_1)
+      .property("g", &pendulum::SingleCartPoleParams::g);
+
+  em::class_<pendulum::Simulator>("Simulator")
+      .constructor<pendulum::SingleCartPoleParams>()
+      .function("step", &pendulum::Simulator::Step)
+      .function("getState", &pendulum::Simulator::GetState)
+      .function("setState", &pendulum::Simulator::SetState);
+}

@@ -39,17 +39,6 @@ END_THIRD_PARTY_INCLUDES
 namespace nb = nanobind;
 namespace pendulum {
 
-template <typename Scalar>
-Scalar mod_pi(Scalar angle) {
-  static_assert(std::is_floating_point_v<Scalar>);
-  constexpr Scalar pi = static_cast<Scalar>(M_PI);
-  constexpr Scalar two_pi = 2 * pi;
-  angle = std::fmod(angle, two_pi);
-  angle += (angle < 0) * two_pi;   //  Map to [0, 2pi]
-  angle -= (angle > pi) * two_pi;  //  Map to (-pi, pi].
-  return angle;
-}
-
 // We need to evaluate the forward dynamics model over a set of timesteps.
 // Pendulum params. (B, ) of these.
 // Timestep size: `dt`, 1 scalar.
@@ -61,9 +50,9 @@ Scalar mod_pi(Scalar angle) {
 // We will return a:
 //  - (B, N, D) array of states over the planning horizon.
 //  - (B, N, N, D) array of derivatives of states wrt the control inputs.
-template <std::size_t D>
+template <typename P, std::size_t D>
 auto evaluate_forward_dynamics(
-    const std::vector<pendulum::PendulumParams>& params, const double dt,
+    const std::vector<P>& params, const double dt,
     const nb::ndarray<const double, nb::shape<-1, -1>, nb::device::cpu> u_array,
     const nb::ndarray<const double, nb::shape<-1, D>, nb::device::cpu> x0_array) {
   // Check that the batch dimensions all match.
@@ -210,19 +199,19 @@ auto evaluate_forward_dynamics(
 }  // namespace pendulum
 
 NB_MODULE(PY_MODULE_NAME, m) {
-  nb::class_<pendulum::PendulumParams>(m, "PendulumParams")
+  nb::class_<pendulum::SingleCartPoleParams>(m, "SingleCartPoleParams")
       .def(nb::init<>())
-      .def(nb::init<double, double, double, double, double, double>(), nb::arg("m_b"),
-           nb::arg("m_1"), nb::arg("m_2"), nb::arg("l_1"), nb::arg("l_2"), nb::arg("g"))
-      .def_rw("m_b", &pendulum::PendulumParams::m_b)
-      .def_rw("m_1", &pendulum::PendulumParams::m_1)
-      .def_rw("m_2", &pendulum::PendulumParams::m_2)
-      .def_rw("l_1", &pendulum::PendulumParams::l_1)
-      .def_rw("l_2", &pendulum::PendulumParams::l_2)
-      .def_rw("g", &pendulum::PendulumParams::g);
+      .def(nb::init<double, double, double, double>(), nb::arg("m_b"), nb::arg("m_1"),
+           nb::arg("l_1"), nb::arg("g"))
+      .def_rw("m_b", &pendulum::SingleCartPoleParams::m_b)
+      .def_rw("m_1", &pendulum::SingleCartPoleParams::m_1)
+      .def_rw("l_1", &pendulum::SingleCartPoleParams::l_1)
+      .def_rw("g", &pendulum::SingleCartPoleParams::g);
 
-  m.def("evaluate_forward_dynamics_double", &pendulum::evaluate_forward_dynamics<6>,
-        nb::arg("params"), nb::arg("dt"), nb::arg("u"), nb::arg("x0"));
-  m.def("evaluate_forward_dynamics_single", &pendulum::evaluate_forward_dynamics<4>,
-        nb::arg("params"), nb::arg("dt"), nb::arg("u"), nb::arg("x0"));
+  m.def("evaluate_forward_dynamics_double",
+        &pendulum::evaluate_forward_dynamics<pendulum::DoubleCartPoleParams, 6>, nb::arg("params"),
+        nb::arg("dt"), nb::arg("u"), nb::arg("x0"));
+  m.def("evaluate_forward_dynamics_single",
+        &pendulum::evaluate_forward_dynamics<pendulum::SingleCartPoleParams, 4>, nb::arg("params"),
+        nb::arg("dt"), nb::arg("u"), nb::arg("x0"));
 }

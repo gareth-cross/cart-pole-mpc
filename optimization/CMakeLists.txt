@@ -2,8 +2,15 @@
 set(MODULE_NAME "optimization")
 add_library(
   ${MODULE_NAME} STATIC
-  parameters.hpp integration.hpp single_pendulum_dynamics.hpp
-  double_pendulum_dynamics.hpp single_pendulum_energy.hpp)
+  double_pendulum_dynamics.hpp
+  integration.hpp
+  key.hpp
+  optimization.cc
+  optimization.hpp
+  structs.hpp
+  simulator.cc
+  simulator.hpp
+  single_pendulum_dynamics.hpp)
 target_compile_features(${MODULE_NAME} PUBLIC cxx_std_17)
 target_link_libraries(${MODULE_NAME} PUBLIC fmt::fmt-header-only eigen
                                             wrenfold::wrenfold-runtime mini_opt)
@@ -39,7 +46,7 @@ if(BUILD_WITH_EMSCRIPTEN)
     ${WASM_MODULE_NAME}
     PROPERTIES
       LINK_FLAGS
-      "-sENVIRONMENT=web -sSINGLE_FILE=1 -sMODULARIZE -sEXPORT_NAME=OptimizationWasm -lembind"
+      "-sENVIRONMENT=web -sSINGLE_FILE=1 -sMODULARIZE -sEXPORT_NAME=OptimizationWasm -lembind --emit-tsd ${CMAKE_CURRENT_BINARY_DIR}/${WASM_MODULE_NAME}.d.ts"
   )
 
   # Copy built JavaScirpt to the viz node project.
@@ -50,6 +57,13 @@ if(BUILD_WITH_EMSCRIPTEN)
       ${CMAKE_COMMAND} -E copy
       "${CMAKE_CURRENT_BINARY_DIR}/${WASM_MODULE_NAME}.js"
       "${CMAKE_SOURCE_DIR}/viz/src/${WASM_MODULE_NAME}.js")
+  add_custom_command(
+    TARGET ${WASM_MODULE_NAME}
+    POST_BUILD
+    COMMAND
+      ${CMAKE_COMMAND} -E copy
+      "${CMAKE_CURRENT_BINARY_DIR}/${WASM_MODULE_NAME}.d.ts"
+      "${CMAKE_SOURCE_DIR}/viz/src/${WASM_MODULE_NAME}.d.ts")
 endif()
 
 # Function to add unit tests to this module.

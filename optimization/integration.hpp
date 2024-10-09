@@ -1,8 +1,9 @@
 // Copyright 2024 Gareth Cross.
 #pragma once
+#include <cmath>
 #include <tuple>
 
-#include <Eigen/Dense>
+#include <Eigen/Core>
 
 namespace pendulum {
 
@@ -45,6 +46,30 @@ auto runge_kutta_4th_order(const Eigen::Matrix<double, D, 1>& x, const double u,
   const UJacobian x_new_D_u = (h / 6.0) * (k1_D_u + k2_D_u * 2.0 + k3_D_u * 2.0 + k4_D_u);
 
   return std::make_tuple(result, x_new_D_x, x_new_D_u);
+}
+
+// Variation of `runge_kutta_4th_order` that does not compute derivatives.
+template <int D, typename F>
+auto runge_kutta_4th_order_no_jacobians(const Eigen::Matrix<double, D, 1>& x, const double u,
+                                        const double h, F&& f) {
+  using X = Eigen::Matrix<double, D, 1>;
+  const X k1 = f(x, u);
+  const X k2 = f((x + k1 * h / 2.0).eval(), u);
+  const X k3 = f((x + k2 * h / 2.0).eval(), u);
+  const X k4 = f((x + k3 * h).eval(), u);
+  const X result = x + (h / 6.0) * (k1 + k2 * 2.0 + k3 * 2.0 + k4);
+  return result;
+}
+
+// Map an angle to (-pi, pi].
+template <typename Scalar, typename = std::enable_if_t<std::is_floating_point_v<Scalar>>>
+Scalar mod_pi(Scalar angle) noexcept {
+  constexpr Scalar pi = static_cast<Scalar>(M_PI);
+  constexpr Scalar two_pi = 2 * pi;
+  angle = std::fmod(angle, two_pi);
+  angle += (angle < 0) * two_pi;   //  Map to [0, 2pi]
+  angle -= (angle > pi) * two_pi;  //  Map to (-pi, pi].
+  return angle;
 }
 
 }  // namespace pendulum

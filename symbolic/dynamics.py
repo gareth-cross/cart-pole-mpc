@@ -7,8 +7,18 @@ from .sympy_utils import get_euler_lagrange_coefficients, get_mat_inverse
 
 
 @dataclasses.dataclass
-class PendulumParams:
-    """Parameters of the pendulum system."""
+class SingleCartPoleParams:
+    """Parameters of the single-pole system."""
+
+    m_b: type_annotations.FloatScalar
+    m_1: type_annotations.FloatScalar
+    l_1: type_annotations.FloatScalar
+    g: type_annotations.FloatScalar
+
+
+@dataclasses.dataclass
+class DoubleCartPoleParams:
+    """Parameters of the double-pole system."""
 
     m_b: type_annotations.FloatScalar
     m_1: type_annotations.FloatScalar
@@ -103,7 +113,7 @@ def get_double_pendulum_dynamics() -> T.Callable:
     x_ddot = A_inv * f
 
     def double_pendulum_dynamics(
-        params: PendulumParams,
+        params: DoubleCartPoleParams,
         x: type_annotations.Vector6,
         u: type_annotations.FloatScalar,
     ):
@@ -144,7 +154,7 @@ def get_double_pendulum_dynamics() -> T.Callable:
     return double_pendulum_dynamics
 
 
-def get_single_pendulum_dynamics() -> T.Tuple[T.Callable, T.Callable]:
+def get_single_pendulum_dynamics() -> T.Callable:
     """
     Return a symbolic function that evaluates the dynamics of a cart-mounted single pendulum.
 
@@ -219,7 +229,7 @@ def get_single_pendulum_dynamics() -> T.Tuple[T.Callable, T.Callable]:
     x_ddot = A_inv * f
 
     def single_pendulum_dynamics(
-        params: PendulumParams,
+        params: SingleCartPoleParams,
         x: type_annotations.Vector4,
         u: type_annotations.FloatScalar,
     ):
@@ -255,49 +265,4 @@ def get_single_pendulum_dynamics() -> T.Tuple[T.Callable, T.Callable]:
             code_generation.OutputArg(J_u, name="J_u", is_optional=True),
         ]
 
-    def single_pendulum_energy(params: PendulumParams, x: type_annotations.Vector4):
-        """
-        Computes the kinetic and potential energy of the single pendulum/cart-pole system.
-        We also compute derivatives wrt the state.
-        """
-        states = list(zip([b_x, th_1], x[:2].to_flat_list()))
-        vel_states = list(zip([b_x_dot, th_1_dot], x[2:].to_flat_list()))
-
-        T_subbed = (
-            T.subs(
-                [
-                    (m_b, params.m_b),
-                    (m_1, params.m_1),
-                    (l_1, params.l_1),
-                    (g, params.g),
-                ]
-            )
-            .subs(vel_states)
-            .subs(states)
-        )
-
-        V_subbed = (
-            V.subs(
-                [
-                    (m_b, params.m_b),
-                    (m_1, params.m_1),
-                    (l_1, params.l_1),
-                    (g, params.g),
-                ]
-            )
-            .subs(vel_states)
-            .subs(states)
-        )
-
-        return [
-            code_generation.OutputArg(T_subbed, name="kinetic"),
-            code_generation.OutputArg(V_subbed, name="potential"),
-            code_generation.OutputArg(
-                sym.jacobian([T_subbed], x), name="kin_D_x", is_optional=True
-            ),
-            code_generation.OutputArg(
-                sym.jacobian([V_subbed], x), name="pot_D_x", is_optional=True
-            ),
-        ]
-
-    return single_pendulum_dynamics, single_pendulum_energy
+    return single_pendulum_dynamics
