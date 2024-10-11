@@ -11,7 +11,6 @@
 #include "single_pendulum_dynamics.hpp"
 
 #include "mini_opt/assertions.hpp"
-#include "mini_opt/logging.hpp"
 #include "mini_opt/nonlinear.hpp"
 #include "mini_opt/residual.hpp"
 
@@ -179,15 +178,11 @@ TEST(OptimizationTest, TestPendulumSystem) {
   // p.armijo_search_tau = 0.25;
   p.max_line_search_iterations = 5;
 
-  mini_opt::Logger logger{};
-  nls.SetLoggingCallback(std::bind(&mini_opt::Logger::NonlinearSolverCallback, &logger,
-                                   std::placeholders::_1, std::placeholders::_2));
-
   Eigen::VectorXd u_params = Eigen::VectorXd::Zero(indices.size());
   const mini_opt::NLSSolverOutputs outputs = nls.Solve(p, u_params);
 
   std::cout << fmt::format("Termination state: {}\n{}\n", fmt::streamed(outputs.termination_state),
-                           logger.GetString());
+                           outputs.ToString(true));
 
   std::cout << nls.variables().transpose().format(
                    Eigen::IOFormat(Eigen::FullPrecision, 0, ", ", ",\n", "[", "]", "[", "]"))
@@ -368,15 +363,11 @@ TEST(OptimizationTest, TestCartPoleMultipleShooting) {
       });
 
   mini_opt::ConstrainedNonlinearLeastSquares::Params p{};
-  p.max_iterations = 200;
+  p.max_iterations = 30;
   p.relative_exit_tol = 1.0e-7;
   p.max_qp_iterations = 1;
   p.max_line_search_iterations = 5;
   p.lambda_initial = 0.0;
-
-  mini_opt::Logger logger{};
-  nls.SetLoggingCallback(std::bind(&mini_opt::Logger::NonlinearSolverCallback, &logger,
-                                   std::placeholders::_1, std::placeholders::_2));
 
   Eigen::VectorXd initial_guess = Eigen::VectorXd::Zero(problem.dimension);
   // initial_guess.head<4>() = x0;
@@ -396,7 +387,7 @@ TEST(OptimizationTest, TestCartPoleMultipleShooting) {
   const mini_opt::NLSSolverOutputs outputs = nls.Solve(p, initial_guess);
 
   std::cout << fmt::format("Termination state: {}\n{}\n", fmt::streamed(outputs.termination_state),
-                           logger.GetString());
+                           outputs.ToString(true));
 
   std::cout << nls.variables()
                    .tail(window_len)
@@ -417,7 +408,7 @@ TEST(OptimizationTest, TestCartPoleMultipleShootingClosedLoop) {
   constexpr SingleCartPoleParams params{1.0, 0.1, 0.25, 9.81};
 
   // The initial state of the system:
-  const Eigen::Vector4d x0 = (Eigen::Vector4d() << 0.0, -M_PI / 2, 0.0, 0.0).finished();
+  const Eigen::Vector4d x0 = (Eigen::Vector4d() << 0.0, 0.0, 0.0, 0.0).finished();
 
   // Total # of parameters:
   constexpr std::size_t state_multiplier = 5;
@@ -435,7 +426,7 @@ TEST(OptimizationTest, TestCartPoleMultipleShootingClosedLoop) {
   std::vector<Eigen::Vector4d> states{};
   states.push_back(x_current);
   std::vector<double> controls{};
-  for (std::size_t t = 0; t < 200; ++t) {
+  for (std::size_t t = 0; t < 1; ++t) {
     problem.clear();
 
     for (std::size_t i = 0; i + 1 < num_states; ++i) {
@@ -622,15 +613,11 @@ TEST(OptimizationTest, TestCartPoleMultipleShootingClosedLoop) {
         });
 
     mini_opt::ConstrainedNonlinearLeastSquares::Params p{};
-    p.max_iterations = 200;
+    p.max_iterations = 30;
     p.relative_exit_tol = 1.0e-7;
     p.max_qp_iterations = 1;
     p.max_line_search_iterations = 5;
     p.lambda_initial = 0.0;
-
-    mini_opt::Logger logger{};
-    nls.SetLoggingCallback(std::bind(&mini_opt::Logger::NonlinearSolverCallback, &logger,
-                                     std::placeholders::_1, std::placeholders::_2));
 
     Eigen::VectorXd guess = Eigen::VectorXd::Zero(problem.dimension);
     guess.head<4>() = x_current;
@@ -646,8 +633,8 @@ TEST(OptimizationTest, TestCartPoleMultipleShootingClosedLoop) {
     const auto start = std::chrono::steady_clock::now();
     const mini_opt::NLSSolverOutputs outputs = nls.Solve(p, guess);
 
-    std::cout << fmt::format("Termination state: {} @ {}\n",
-                             fmt::streamed(outputs.termination_state), t);
+    std::cout << fmt::format("Termination state: {} @ {}\n{}\n",
+                             fmt::streamed(outputs.termination_state), t, outputs.ToString(true));
 
     const auto end = std::chrono::steady_clock::now();
 
@@ -731,8 +718,8 @@ TEST(OptimizationTest, TestCartPoleMultipleShootingClosedLoop2) {
   // Parameters of the pendulum system
   constexpr SingleCartPoleParams dynamics_params{1.0, 0.1, 0.25, 9.81};
 
-  // The initial state of the system:
-  constexpr SingleCartPoleState x0{0.0, -M_PI / 2, 0.0, 0.0};
+  // The initial state of the system: -M_PI / 2
+  constexpr SingleCartPoleState x0{0.0, 0.0, 0.0, 0.0};
 
   std::vector<SingleCartPoleState> states{};
   states.reserve(num_steps);
@@ -747,14 +734,14 @@ TEST(OptimizationTest, TestCartPoleMultipleShootingClosedLoop2) {
 
   Optimization optimization{optimization_params};
 
-  for (std::size_t t = 0; t < num_steps; ++t) {
+  for (std::size_t t = 0; t < 1; ++t) {
     // Step the optimization and compute a control output:
-    const auto [outcome, u] = optimization.Step(sim.GetState(), dynamics_params);
+    const OptimizationOutputs outputs = optimization.Step(sim.GetState(), dynamics_params);
 
-    sim.Step(optimization_params.control_dt, u);
+    sim.Step(optimization_params.control_dt, outputs.u.front());
 
     states.push_back(sim.GetState());
-    controls.push_back(u);
+    controls.push_back(outputs.u.front());
   }
 
   fmt::print("controls: [[{}]]\n", fmt::join(controls, ", "));

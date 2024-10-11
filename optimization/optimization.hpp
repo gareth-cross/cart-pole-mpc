@@ -22,14 +22,25 @@ struct OptimizationParams {
   constexpr std::size_t NumStates() const noexcept { return window_length / state_spacing + 1; }
 };
 
+struct OptimizationOutputs {
+  // Debug statistics from the solver itself.
+  mini_opt::NLSSolverOutputs solver_outputs;
+
+  // Control actions over the optimized window.
+  std::vector<double> u;
+
+  // Predicted states integrated over the control window.
+  std::vector<SingleCartPoleState> predicted_states;
+};
+
 // Implementation of hybrid multiple-shooting MPC.
 class Optimization {
  public:
   explicit Optimization(const OptimizationParams& params);
 
   // Run an iteration of optimization and compute control outputs.
-  std::tuple<mini_opt::NLSSolverOutputs, double> Step(const SingleCartPoleState& current_state,
-                                                      const SingleCartPoleParams& dynamics_params);
+  OptimizationOutputs Step(const SingleCartPoleState& current_state,
+                           const SingleCartPoleParams& dynamics_params);
 
  private:
   void BuildProblem(const SingleCartPoleState& current_state,

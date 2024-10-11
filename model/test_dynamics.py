@@ -8,7 +8,7 @@ import torch as th
 import torch.optim as optim
 
 from pypendulum import (
-    PendulumParams,
+    SingleCartPoleParams,
     evaluate_forward_dynamics_double,
     evaluate_forward_dynamics_single,
 )
@@ -17,12 +17,10 @@ from .train import DynamicsLayer, EnergyLoss, Network
 
 
 def main():
-    params = PendulumParams()
+    params = SingleCartPoleParams()
     params.m_b = 1.0
     params.m_1 = 0.25
-    params.m_2 = 0.25
     params.l_1 = 0.40
-    params.l_2 = 0.21
     params.g = 9.81
 
     x0_states = th.tensor(
