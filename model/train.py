@@ -16,7 +16,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from torch import nn
 
 from pypendulum import (
-    PendulumParams,
+    SingleCartPoleParams,
     evaluate_forward_dynamics_double,
     evaluate_forward_dynamics_single,
 )
@@ -40,7 +40,7 @@ class DynamicsLayer(th.autograd.Function):
         # Convert params so we can pass to C++:
         params_structs = []
         for row in params:
-            params_structs.append(PendulumParams(*row))
+            params_structs.append(SingleCartPoleParams(*row))
 
         if x0_states.shape[-1] == 4:
             x_out, x_D_u, x_D_x0 = evaluate_forward_dynamics_single(

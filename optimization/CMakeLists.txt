@@ -39,6 +39,13 @@ if(BUILD_WITH_EMSCRIPTEN)
   target_link_libraries(${WASM_MODULE_NAME} PRIVATE ${MODULE_NAME} eigen)
   target_compile_options(${WASM_MODULE_NAME} PRIVATE ${WARNING_FLAGS}
                                                      ${COMPILER_FLAGS})
+
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(EXTRA_WASM_LINK_FLAGS "-sASSERTIONS=2 -sSTACK_OVERFLOW_CHECK=2")
+  else()
+    set(EXTRA_WASM_LINK_FLAGS "")
+  endif()
+
   # ENVIRONMENT=web, compile for web target. SINGLE_FILE=1, produce a single
   # JavaScript file with base64 encoded WASM. MODULARIZE and EXPORT_NAME,
   # produce an ES6 module.
@@ -46,8 +53,12 @@ if(BUILD_WITH_EMSCRIPTEN)
     ${WASM_MODULE_NAME}
     PROPERTIES
       LINK_FLAGS
-      "-sENVIRONMENT=web -sSINGLE_FILE=1 -sMODULARIZE -sEXPORT_NAME=OptimizationWasm -lembind --emit-tsd ${CMAKE_CURRENT_BINARY_DIR}/${WASM_MODULE_NAME}.d.ts"
-  )
+      "-sENVIRONMENT=web -sSINGLE_FILE=1 -sMODULARIZE \
+       -sEXPORT_NAME=OptimizationWasm -lembind \
+       --emit-tsd ${CMAKE_CURRENT_BINARY_DIR}/${WASM_MODULE_NAME}.d.ts \
+       -sSTACK_SIZE=1048576 \
+       -sINITIAL_MEMORY=128MB \
+      ${EXTRA_WASM_LINK_FLAGS}")
 
   # Copy built JavaScirpt to the viz node project.
   add_custom_command(

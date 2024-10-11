@@ -1,8 +1,6 @@
 // Copyright 2024 Gareth Cross.
 #include "optimization.hpp"
 
-#include <mini_opt/logging.hpp>
-
 #include "integration.hpp"
 #include "key.hpp"
 #include "single_pendulum_dynamics.hpp"
@@ -29,8 +27,8 @@ inline constexpr int MapKey(const KeyType type, const std::size_t index,
   }
 }
 
-std::tuple<mini_opt::NLSSolverOutputs, double> Optimization::Step(
-    const SingleCartPoleState& current_state, const SingleCartPoleParams& dynamics_params) {
+OptimizationOutputs Optimization::Step(const SingleCartPoleState& current_state,
+                                       const SingleCartPoleParams& dynamics_params) {
   // TODO: Don't build the problem every iteration.
   BuildProblem(current_state, dynamics_params);
 
@@ -39,37 +37,46 @@ std::tuple<mini_opt::NLSSolverOutputs, double> Optimization::Step(
 
   const auto num_states = params_.NumStates();
   if (previous_solution_.rows() > 0) {
-    const int first_control = MapKey<4>(KeyType::U, 0, num_states);
-
-    guess.head(first_control) = previous_solution_.head(first_control);
-    guess[MapKey<4>(KeyType::B_X, 0, num_states)] = current_state.b_x;
-    guess[MapKey<4>(KeyType::THETA_1, 0, num_states)] = current_state.th_1;
-    guess[MapKey<4>(KeyType::B_X_DOT, 0, num_states)] = current_state.b_x_dot;
-    guess[MapKey<4>(KeyType::THETA_1_DOT, 0, num_states)] = current_state.th_1_dot;
-
-    guess.segment(first_control, guess.rows() - first_control - 2) =
-        previous_solution_.segment(first_control + 1, guess.rows() - first_control - 1);
+    // A bit lazy - we could shift the old states forward here.
+    guess = previous_solution_;
+    guess.segment<4>(MapKey<4>(KeyType::B_X, 0, num_states)) = current_state.ToVector();
   }
 
   mini_opt::ConstrainedNonlinearLeastSquares::Params p{};
-  p.max_iterations = 200;
+  p.max_iterations = 30;
   p.relative_exit_tol = 1.0e-7;
   p.max_qp_iterations = 1;
   p.max_line_search_iterations = 5;
   p.lambda_initial = 0.0;
 
-  mini_opt::Logger logger{};
-  solver_->SetLoggingCallback(std::bind(&mini_opt::Logger::NonlinearSolverCallback, &logger,
-                                        std::placeholders::_1, std::placeholders::_2));
+  mini_opt::NLSSolverOutputs outputs = solver_->Solve(p, guess);
 
-  const mini_opt::NLSSolverOutputs outputs = solver_->Solve(p, guess);
-
-  fmt::print("Termination state: {}\n", fmt::streamed(outputs.termination_state));
+  // fmt::print("Termination state: {}\n{}\n", fmt::streamed(outputs.termination_state),
+  //            outputs.ToString(true));
 
   // Copy out the solution:
   previous_solution_ = solver_->variables();
 
-  return std::make_tuple(outputs, previous_solution_[MapKey<4>(KeyType::U, 0, num_states)]);
+  // Integrate the controls over the window to compute the predicted motion of the system:
+  const auto u_out = previous_solution_.tail(params_.window_length);
+
+  std::vector<SingleCartPoleState> predicted_states;
+  predicted_states.reserve(u_out.rows());
+
+  Eigen::Vector4d x = current_state.ToVector();
+  for (std::size_t k = 0; k < params_.window_length; ++k) {
+    x = runge_kutta_4th_order_no_jacobians<4>(
+        x, u_out[k], params_.control_dt, [&dynamics_params](const auto& x_updated, const double u) {
+          Eigen::Matrix<double, 4, 1> x_dot;
+          gen::single_pendulum_dynamics(dynamics_params, x_updated, u, x_dot, nullptr, nullptr);
+          return x_dot;
+        });
+    x[1] = mod_pi(x[1]);
+    predicted_states.emplace_back(x[0], x[1], x[2], x[3]);
+  }
+
+  return OptimizationOutputs{std::move(outputs), std::vector<double>{u_out.begin(), u_out.end()},
+                             std::move(predicted_states)};
 }
 
 auto CreateDynamicalConstraint(const SingleCartPoleParams params, const std::size_t state_spacing,
@@ -234,8 +241,11 @@ void Optimization::BuildProblem(const SingleCartPoleState& current_state,
                         Eigen::Matrix<double, 1, 1>* J_out) -> Eigen::Matrix<double, 1, 1> {
           const double weight = (i + 0.5) / static_cast<double>(num_states);
           constexpr double scale = 200.0;
-          const double smooth_weight =
-              scale * (3 * std::pow(weight, 2.0) - 2.0 * std::pow(weight, 3));
+          // const double smooth_weight =
+          //     scale * (3 * std::pow(weight, 2.0) - 2.0 * std::pow(weight, 3));
+
+          const double smooth_weight = scale * (6 * std::pow(weight, 5) - 15 * std::pow(weight, 4) +
+                                                10 * std::pow(weight, 3));
 
           const double delta_signed = mod_pi(vars[0] - M_PI / 2);
           if (J_out) {
