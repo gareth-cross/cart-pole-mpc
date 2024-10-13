@@ -43,6 +43,9 @@ struct SingleCartPoleState {
   constexpr SingleCartPoleState(double b_x, double th_1, double b_x_dot, double th_1_dot) noexcept
       : b_x(b_x), th_1(th_1), b_x_dot(b_x_dot), th_1_dot(th_1_dot) {}
 
+  explicit SingleCartPoleState(const Eigen::Vector4d& x) noexcept
+      : SingleCartPoleState(x[0], x[1], x[2], x[3]) {}
+
   Eigen::Vector4d ToVector() const noexcept { return {b_x, th_1, b_x_dot, th_1_dot}; }
 };
 

@@ -197,47 +197,53 @@ auto evaluate_forward_dynamics(
       nb::ndarray<nb::numpy, const double>(x_D_x0_out.data(), {B, N, D, D}, capsule));
 }
 
-}  // namespace pendulum
-
-NB_MODULE(PY_MODULE_NAME, m) {
-  nb::class_<pendulum::SingleCartPoleParams>(m, "SingleCartPoleParams")
+void wrap_everything(nb::module_& m) {
+  nb::class_<SingleCartPoleParams>(m, "SingleCartPoleParams")
       .def(nb::init<>())
       .def(nb::init<double, double, double, double>(), nb::arg("m_b"), nb::arg("m_1"),
            nb::arg("l_1"), nb::arg("g"))
-      .def_rw("m_b", &pendulum::SingleCartPoleParams::m_b)
-      .def_rw("m_1", &pendulum::SingleCartPoleParams::m_1)
-      .def_rw("l_1", &pendulum::SingleCartPoleParams::l_1)
-      .def_rw("g", &pendulum::SingleCartPoleParams::g);
+      .def_rw("m_b", &SingleCartPoleParams::m_b)
+      .def_rw("m_1", &SingleCartPoleParams::m_1)
+      .def_rw("l_1", &SingleCartPoleParams::l_1)
+      .def_rw("g", &SingleCartPoleParams::g);
 
-  m.def("evaluate_forward_dynamics_double",
-        &pendulum::evaluate_forward_dynamics<pendulum::DoubleCartPoleParams, 6>, nb::arg("params"),
-        nb::arg("dt"), nb::arg("u"), nb::arg("x0"));
-  m.def("evaluate_forward_dynamics_single",
-        &pendulum::evaluate_forward_dynamics<pendulum::SingleCartPoleParams, 4>, nb::arg("params"),
-        nb::arg("dt"), nb::arg("u"), nb::arg("x0"));
+  m.def("evaluate_forward_dynamics_double", &evaluate_forward_dynamics<DoubleCartPoleParams, 6>,
+        nb::arg("params"), nb::arg("dt"), nb::arg("u"), nb::arg("x0"));
+  m.def("evaluate_forward_dynamics_single", &evaluate_forward_dynamics<SingleCartPoleParams, 4>,
+        nb::arg("params"), nb::arg("dt"), nb::arg("u"), nb::arg("x0"));
 
   // Wrap the optimization:
-  nb::class_<pendulum::OptimizationParams>(m, "OptimizationParams")
+  nb::class_<OptimizationParams>(m, "OptimizationParams")
       .def(nb::init<>())
-      .def_rw("control_dt", &pendulum::OptimizationParams::control_dt)
-      .def_rw("window_length", &pendulum::OptimizationParams::window_length)
-      .def_rw("state_spacing", &pendulum::OptimizationParams::state_spacing)
-      .def_rw("max_iterations", &pendulum::OptimizationParams::max_iterations);
+      .def_rw("control_dt", &OptimizationParams::control_dt)
+      .def_rw("window_length", &OptimizationParams::window_length)
+      .def_rw("state_spacing", &OptimizationParams::state_spacing)
+      .def_rw("max_iterations", &OptimizationParams::max_iterations)
+      .def_rw("relative_exit_tol", &OptimizationParams::relative_exit_tol)
+      .def_rw("absolute_first_derivative_tol", &OptimizationParams::absolute_first_derivative_tol)
+      .def_rw("u_guess_sinusoid_amplitude", &OptimizationParams::u_guess_sinusoid_amplitude)
+      .def_rw("u_penalty", &OptimizationParams::u_penalty)
+      .def_rw("u_derivative_penalty", &OptimizationParams::u_derivative_penalty)
+      .def_rw("b_x_final_penalty", &OptimizationParams::b_x_final_penalty);
 
-  nb::class_<pendulum::SingleCartPoleState>(m, "SingleCartPoleState")
+  nb::class_<SingleCartPoleState>(m, "SingleCartPoleState")
       .def(nb::init<double, double, double, double>())
-      .def_rw("b_x", &pendulum::SingleCartPoleState::b_x)
-      .def_rw("th_1", &pendulum::SingleCartPoleState::th_1)
-      .def_rw("b_x_dot", &pendulum::SingleCartPoleState::b_x_dot)
-      .def_rw("th_1_dot", &pendulum::SingleCartPoleState::th_1_dot);
+      .def_rw("b_x", &SingleCartPoleState::b_x)
+      .def_rw("th_1", &SingleCartPoleState::th_1)
+      .def_rw("b_x_dot", &SingleCartPoleState::b_x_dot)
+      .def_rw("th_1_dot", &SingleCartPoleState::th_1_dot);
 
-  nb::class_<pendulum::OptimizationOutputs>(m, "OptimizationOutputs")
+  nb::class_<OptimizationOutputs>(m, "OptimizationOutputs")
       .def("solver_summary",
-           [](const pendulum::OptimizationOutputs& self) { return self.solver_outputs.ToString(); })
-      .def_ro("u", &pendulum::OptimizationOutputs::u)
-      .def_ro("predicted_states", &pendulum::OptimizationOutputs::predicted_states);
+           [](const OptimizationOutputs& self) { return self.solver_outputs.ToString(); })
+      .def_ro("u", &OptimizationOutputs::u)
+      .def_ro("predicted_states", &OptimizationOutputs::predicted_states);
 
-  nb::class_<pendulum::Optimization>(m, "Optimization")
-      .def(nb::init<const pendulum::OptimizationParams&>())
-      .def("step", &pendulum::Optimization::Step);
+  nb::class_<Optimization>(m, "Optimization")
+      .def(nb::init<const OptimizationParams&>())
+      .def("step", &Optimization::Step);
 }
+
+}  // namespace pendulum
+
+NB_MODULE(PY_MODULE_NAME, m) { pendulum::wrap_everything(m); }

@@ -4,6 +4,7 @@
 
 #include <mini_opt/nonlinear.hpp>
 
+#include "mini_opt/structs.hpp"
 #include "structs.hpp"
 
 namespace pendulum {
@@ -11,14 +12,31 @@ namespace pendulum {
 struct OptimizationParams {
   // Step between sequential control inputs in the planning window.
   double control_dt{0.01};
+
   // Length of the planning horizon in samples.
   std::size_t window_length{50};
+
   // # of control inputs between sequential states in the optimization.
   // Setting this to `1` would correspond to multiple shooting.
+  // Setting this to `window_length` would roughly correspond to single shooting.
   std::size_t state_spacing{10};
 
   // Max iterations of optimization.
   std::size_t max_iterations{30};
+
+  // See mini_opt::ConstrainedNonlinearLeastSquares::Params.
+  double relative_exit_tol{1.0e-5};
+
+  // See mini_opt::ConstrainedNonlinearLeastSquares::Params.
+  double absolute_first_derivative_tol{1.0e-6};
+
+  // Amplitude of the sinusoid that we feed in as our initial guess.
+  double u_guess_sinusoid_amplitude{10.0};
+
+  // Parameters on the quadratic weights in the optimization:
+  double u_penalty{0.1};
+  double u_derivative_penalty{0.1};
+  double b_x_final_penalty{150.0};
 
   // Number of states in the window.
   // Add one for the terminal state.
@@ -48,6 +66,15 @@ class Optimization {
  private:
   void BuildProblem(const SingleCartPoleState& current_state,
                     const SingleCartPoleParams& dynamics_params);
+
+  // Fill initial guess vector by integrating the dynamics model.
+  void FillInitialGuess(Eigen::VectorXd& guess, const SingleCartPoleParams& dynamics_params,
+                        const std::size_t num_states) const;
+
+  // Given the solution vector, compute the full set of states over the window.
+  std::vector<SingleCartPoleState> ComputePredictedStates(
+      mini_opt::ConstVectorBlock u_out, const SingleCartPoleParams& dynamics_params,
+      const SingleCartPoleState& x_current) const;
 
   OptimizationParams params_;
   mini_opt::Problem problem_;
