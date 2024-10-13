@@ -1,5 +1,3 @@
-import * as mathjs from 'mathjs';
-
 import { SingleCartPoleState } from './optimization-wasm';
 import { SingleCartPoleParams } from './optimization-wasm';
 
@@ -14,10 +12,20 @@ export class Renderer {
 
     this.canvas = canvas;
     this.context = context;
+
+    // Automatically resize when the parent div changes size:
+    const canvasParent = this.canvas.parentElement as HTMLDivElement;
+    new ResizeObserver(() => this.parentSizeChanged()).observe(canvasParent);
+    this.parentSizeChanged();
+  }
+
+  private parentSizeChanged() {
+    this.canvas.width = this.canvas.offsetWidth;
+    this.canvas.height = this.canvas.offsetHeight;
   }
 
   // Draw the current pendulum configuration.
-  public draw_single(state: SingleCartPoleState, pendulum_params: SingleCartPoleParams) {
+  public drawSingle(state: SingleCartPoleState, pendulum_params: SingleCartPoleParams) {
     const [ctxWidth, ctxHeight] = [this.canvas.width, this.canvas.height];
     this.context.clearRect(0, 0, ctxWidth, ctxHeight);
 
@@ -52,8 +60,8 @@ export class Renderer {
       baseHeightPixels
     );
 
-    const x1 = bx + pixelsPerMeter * pendulum_params.l_1 * mathjs.cos(state.th_1);
-    const y1 = by - pixelsPerMeter * pendulum_params.l_1 * mathjs.sin(state.th_1);
+    const x1 = bx + pixelsPerMeter * pendulum_params.l_1 * Math.cos(state.th_1);
+    const y1 = by - pixelsPerMeter * pendulum_params.l_1 * Math.sin(state.th_1);
 
     // Draw the arm:
     this.context.lineWidth = 4;
