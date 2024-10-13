@@ -11,10 +11,11 @@ message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 message(STATUS "CMAKE_EXE_LINKER_FLAGS: ${CMAKE_EXE_LINKER_FLAGS}")
 
 if(BUILD_WITH_EMSCRIPTEN)
-  add_compile_options(-fwasm-exceptions -Wno-deprecated-declarations -g3)
-  add_link_options(-fwasm-exceptions -g3)
+  add_compile_options(-fwasm-exceptions -Wno-deprecated-declarations)
+  add_link_options(-fwasm-exceptions)
   # Enable debug symbols and address sanitization in Debug builds.
-  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL
+                                          "RelWithDebInfo")
     add_compile_options(-g3 -fsanitize=address)
     add_link_options(-g3 -fsanitize=address)
   endif()

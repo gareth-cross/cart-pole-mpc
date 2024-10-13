@@ -1,0 +1,8 @@
+/* Import tailwind CSS. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+#body {
+    background-color: #13171f;
+}

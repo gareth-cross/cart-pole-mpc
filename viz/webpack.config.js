@@ -2,7 +2,6 @@ const path = require('path');
 
 module.exports = {
     mode: 'development',
-    watch: true,
     watchOptions: {
         ignored: '**/node_modules',
     },
@@ -28,7 +27,12 @@ module.exports = {
                         loader: 'sass-loader'
                     }
                 ]
-            }
+            },
+            {
+                test: /\.css$/i,
+                include: path.resolve(__dirname, 'src'),
+                use: ['style-loader', 'css-loader', 'postcss-loader'],
+            },
         ],
     },
     plugins: [],
@@ -38,5 +42,22 @@ module.exports = {
     output: {
         filename: 'main.js',
         path: path.resolve(__dirname, 'dist'),
+    },
+    devServer: {
+        static: {
+            directory: path.resolve(__dirname, 'dist'),
+        },
+        port: 8000,
+        open: false,
+        hot: true,
+        compress: true,
+        historyApiFallback: true,
+        client: {
+            overlay: {
+                errors: true,         // Show critical errors
+                warnings: false,      // Suppress warnings
+                runtimeErrors: false, // Suppress runtime errors like ResizeObserver errors
+            },
+        },
     },
 };
