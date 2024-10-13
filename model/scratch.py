@@ -1,5 +1,5 @@
 """
-Visualize some things.
+Script for manipulating optimization params and visualizing the results.
 """
 
 import sys
@@ -21,13 +21,22 @@ from pypendulum import (
 
 def main():
     params = SingleCartPoleParams(1.0, 0.1, 0.25, 9.81)
-    x0_initial = SingleCartPoleState(0.0, 0.0, 0.0, 0.0)
+    x0_initial = SingleCartPoleState(0.0, -np.pi / 2, 0.0, 0.0)
 
     opt_params = OptimizationParams()
+    opt_params.max_iterations = 30
+    opt_params.state_spacing = 10
+    opt_params.window_length = 50
+    opt_params.absolute_first_derivative_tol = 1.0e-3
+    opt_params.u_guess_sinusoid_amplitude = 10.0
+    opt_params.u_derivative_penalty = 0.1
     opt = Optimization(opt_params)
     outputs = opt.step(x0_initial, params)
 
-    fig, ((ax0, ax1), (ax2, ax3), (ax4, _)) = plt.subplots(nrows=3, ncols=2)
+    print(outputs.solver_summary())
+
+    fig, ((ax0, ax1), (ax2, ax3), (ax4, ax5)) = plt.subplots(nrows=3, ncols=2)
+    fig.set_size_inches((14, 8))
 
     # angle and angle derivative
     ax0.plot([s.th_1 for s in outputs.predicted_states])
@@ -46,7 +55,7 @@ def main():
     ax2.set_ylabel("Meters")
     ax2.grid()
 
-    ax3.plot([s.b_x_theta for s in outputs.predicted_states])
+    ax3.plot([s.b_x_dot for s in outputs.predicted_states])
     ax3.set_xlabel("Time")
     ax3.set_ylabel("Meters / s")
     ax3.grid()
@@ -55,6 +64,11 @@ def main():
     ax4.set_xlabel("Time")
     ax4.set_ylabel("Newtons")
     ax4.grid()
+
+    ax5.plot(np.diff(outputs.u))
+    ax5.set_xlabel("Time")
+    ax5.set_ylabel("Newtons (Delta)")
+    ax5.grid()
 
     plt.show()
 

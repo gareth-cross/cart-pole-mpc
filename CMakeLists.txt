@@ -42,7 +42,7 @@ add_subdirectory(dependencies)
 
 if(MSVC)
   set(WARNING_FLAGS /W4 /WX)
-  set(COMPILER_FLAGS /bigobj /EHs /Zc:__cplusplus)
+  set(COMPILER_FLAGS /bigobj /EHs /Zc:__cplusplus -D_USE_MATH_DEFINES)
 else()
   set(WARNING_FLAGS -Wall -Wextra -pedantic -Werror)
   set(COMPILER_FLAGS "")
