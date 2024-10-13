@@ -28,6 +28,7 @@ void Simulator::SubStep(const double dt, const double u) {
         gen::single_pendulum_dynamics(params_, x_updated, u_integration, x_dot, nullptr, nullptr);
         return x_dot;
       });
+  state_[1] = mod_pi(state_[1]);
 }
 
 }  // namespace pendulum

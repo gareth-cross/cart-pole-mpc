@@ -27,7 +27,7 @@ class Simulator {
   void SubStep(double dt, double u);
 
   SingleCartPoleParams params_;
-  Eigen::Vector4d state_{Eigen::Vector4d::Zero()};
+  Eigen::Vector4d state_{0.0, -M_PI / 2, 0.0, 0.0};
 };
 
 }  // namespace pendulum
