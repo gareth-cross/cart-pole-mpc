@@ -1,8 +1,5 @@
 import './styles.css';
 
-// import plotlyJsDistMin from 'plotly.js-dist-min';
-// import uPlot from 'uplot';
-
 import OptimizationWasm, {
   MainModule,
   Simulator,
@@ -13,71 +10,6 @@ import OptimizationWasm, {
 
 import { Renderer } from './renderer';
 import { Plotter } from './plotter';
-
-// function createPlot(id: string, title: string, xaxis: string, yaxis: string) {
-//   const plotCol = document.getElementById('plotColumn') as HTMLDivElement;
-//   const layout = {
-//     title: title,
-//     xaxis: {
-//       title: xaxis,
-//       gridcolor: '#555'
-//     },
-//     yaxis: {
-//       title: yaxis,
-//       gridcolor: '#555'
-//     },
-//     paper_bgcolor: '#222',
-//     plot_bgcolor: '#222',
-//     font: {
-//       color: '#fff'
-//     },
-//     margin: { l: 40, r: 5, t: 40, b: 40 }
-//   };
-//   const newDiv = document.createElement('div');
-//   newDiv.id = id;
-//   plotlyJsDistMin.newPlot(newDiv, [], layout);
-
-//   new ResizeObserver(() => {
-//     plotlyJsDistMin.update(
-//       newDiv,
-//       {},
-//       { width: plotCol.getBoundingClientRect().width, height: 200.0 }
-//     );
-//   }).observe(plotCol);
-
-//   plotCol.appendChild(newDiv);
-// }
-
-// function updatePlot(id: string, x: Array<number>, y: Array<number>) {
-//   const data = [
-//     {
-//       x: x,
-//       y: y,
-//       type: 'scatter' as const
-//     }
-//   ];
-//   const layout = {
-//     // xaxis: {
-//     //   autotick: false,
-//     //   // ticks: 'outside',
-//     //   tick0: 0,
-//     //   dtick: 0.25,
-//     //   ticklen: 8,
-//     //   tickwidth: 4,
-//     //   tickcolor: '#000'
-//     // },
-//     // yaxis: {
-//     //   autotick: false,
-//     //   // ticks: 'outside',
-//     //   tick0: 0,
-//     //   dtick: 0.25,
-//     //   ticklen: 8,
-//     //   tickwidth: 4,
-//     //   tickcolor: '#000'
-//     // }
-//   };
-//   plotlyJsDistMin.react(id, data, layout);
-// }
 
 class Application {
   private wasm: MainModule;
@@ -94,7 +26,8 @@ class Application {
   private controlPlotter: Plotter;
 
   // UI controls
-  public controlEnabled: boolean = true;
+  private controlEnabled: boolean = true;
+  private simRate: number = 1.0;
 
   // For collecting execution times of the optimization:
   private optimizationStepDurations: Array<number> = [];
@@ -112,6 +45,7 @@ class Application {
     this.optimizer = new this.wasm.Optimization(params);
     params.delete();
 
+    // The Renderer draws the cart-pole sim, and the plotters draw optimization outputs.
     this.renderer = new Renderer();
 
     this.controlPlotter = new Plotter('controlPlot', {
@@ -126,6 +60,8 @@ class Application {
         num_minor_ticks: 1
       }
     });
+
+    this.connectUi();
   }
 
   // Deallocate C++ resources.
@@ -141,6 +77,28 @@ class Application {
 
   public requestFrame() {
     window.requestAnimationFrame((ts) => this.animationCallback(ts));
+  }
+
+  // TODO: In principle we should clean up these connections, but the app never gets torn
+  // down until page reload.
+  private connectUi() {
+    // Connect buttons to the UI:
+    const controllerCheckbox = document.getElementById(
+      'enableControllerCheckbox'
+    ) as HTMLInputElement;
+
+    controllerCheckbox.addEventListener('change', () => {
+      this.controlEnabled = controllerCheckbox.checked;
+    });
+
+    const simRateSlider = document.getElementById('simRateSlider') as HTMLInputElement;
+    simRateSlider.addEventListener('change', () => {
+      const minSimRate = 0.05;
+      const sliderMax = 100.0;
+      const normalizedSliderValue =
+        Math.min(Math.max(parseInt(simRateSlider.value), 0.0), sliderMax) / sliderMax;
+      this.simRate = minSimRate + (1.0 - minSimRate) * normalizedSliderValue;
+    });
   }
 
   private animationCallback(timestamp: DOMHighResTimeStamp) {
@@ -162,7 +120,7 @@ class Application {
     }
 
     const controlDt = 0.01;
-    this.accumulatedTime += durationInSeconds;
+    this.accumulatedTime += durationInSeconds * this.simRate;
     while (this.accumulatedTime >= controlDt) {
       this.stepControlAndSim(controlDt);
       this.accumulatedTime -= controlDt;
@@ -217,9 +175,6 @@ class Application {
       })
     );
 
-    // updatePlot('controlInputPlot', times, u_controls);
-    // updatePlot('predictedAnglePlot', times, angles);
-
     this.simulator.step(dt, this.controlEnabled ? u_controls[0] : 0.0);
 
     this.controlPlotter.data = { x: times, y: u_controls };
@@ -232,20 +187,9 @@ class Application {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  // createPlot('controlInputPlot', 'Control Input', 'Time (s)', 'Force (N)');
-  // createPlot('predictedAnglePlot', 'Predicted Angle', 'Time (s)', 'Theta (rads)');
-
   OptimizationWasm().then((mod: MainModule) => {
     console.log('Loaded WASM module.');
     const app = new Application(mod);
-
-    // Connect buttons to the UI:
-    document
-      .getElementById('enableControllerCheckbox')
-      .addEventListener('change', function (this: HTMLInputElement) {
-        app.controlEnabled = this.checked;
-      });
-
     // Start the animation loop:
     app.requestFrame();
   });
