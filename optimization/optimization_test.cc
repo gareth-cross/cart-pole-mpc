@@ -734,7 +734,7 @@ TEST(OptimizationTest, TestCartPoleMultipleShootingClosedLoop2) {
 
   Optimization optimization{optimization_params};
 
-  for (std::size_t t = 0; t < 1; ++t) {
+  for (std::size_t t = 0; t < 200; ++t) {
     // Step the optimization and compute a control output:
     const OptimizationOutputs outputs = optimization.Step(sim.GetState(), dynamics_params);
 

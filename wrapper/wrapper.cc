@@ -26,14 +26,15 @@
 BEGIN_THIRD_PARTY_INCLUDES
 #include <nanobind/nanobind.h>
 #include <nanobind/ndarray.h>
+#include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
 END_THIRD_PARTY_INCLUDES
 
-#include "mini_opt/assertions.hpp"
-
-#include "integration.hpp"
+#include <mini_opt/assertions.hpp>
 
 #include "double_pendulum_dynamics.hpp"
+#include "integration.hpp"
+#include "optimization.hpp"
 #include "single_pendulum_dynamics.hpp"
 
 namespace nb = nanobind;
@@ -214,4 +215,29 @@ NB_MODULE(PY_MODULE_NAME, m) {
   m.def("evaluate_forward_dynamics_single",
         &pendulum::evaluate_forward_dynamics<pendulum::SingleCartPoleParams, 4>, nb::arg("params"),
         nb::arg("dt"), nb::arg("u"), nb::arg("x0"));
+
+  // Wrap the optimization:
+  nb::class_<pendulum::OptimizationParams>(m, "OptimizationParams")
+      .def(nb::init<>())
+      .def_rw("control_dt", &pendulum::OptimizationParams::control_dt)
+      .def_rw("window_length", &pendulum::OptimizationParams::window_length)
+      .def_rw("state_spacing", &pendulum::OptimizationParams::state_spacing)
+      .def_rw("max_iterations", &pendulum::OptimizationParams::max_iterations);
+
+  nb::class_<pendulum::SingleCartPoleState>(m, "SingleCartPoleState")
+      .def(nb::init<double, double, double, double>())
+      .def_rw("b_x", &pendulum::SingleCartPoleState::b_x)
+      .def_rw("th_1", &pendulum::SingleCartPoleState::th_1)
+      .def_rw("b_x_dot", &pendulum::SingleCartPoleState::b_x_dot)
+      .def_rw("th_1_dot", &pendulum::SingleCartPoleState::th_1_dot);
+
+  nb::class_<pendulum::OptimizationOutputs>(m, "OptimizationOutputs")
+      .def("solver_summary",
+           [](const pendulum::OptimizationOutputs& self) { return self.solver_outputs.ToString(); })
+      .def_ro("u", &pendulum::OptimizationOutputs::u)
+      .def_ro("predicted_states", &pendulum::OptimizationOutputs::predicted_states);
+
+  nb::class_<pendulum::Optimization>(m, "Optimization")
+      .def(nb::init<const pendulum::OptimizationParams&>())
+      .def("step", &pendulum::Optimization::Step);
 }

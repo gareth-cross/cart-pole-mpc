@@ -15,7 +15,10 @@ struct OptimizationParams {
   std::size_t window_length{50};
   // # of control inputs between sequential states in the optimization.
   // Setting this to `1` would correspond to multiple shooting.
-  std::size_t state_spacing{5};
+  std::size_t state_spacing{10};
+
+  // Max iterations of optimization.
+  std::size_t max_iterations{30};
 
   // Number of states in the window.
   // Add one for the terminal state.

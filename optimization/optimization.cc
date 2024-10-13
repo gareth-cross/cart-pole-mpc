@@ -13,6 +13,7 @@ Optimization::Optimization(const OptimizationParams& params) : params_(params) {
   F_ASSERT_EQ(0, params.window_length % params.state_spacing,
               "state_spacing ({}) must divide into window_Length ({}) cleanly",
               params.state_spacing, params.window_length);
+  F_ASSERT_GE(params.max_iterations, 1);
 }
 
 template <int StateDim>
@@ -43,7 +44,7 @@ OptimizationOutputs Optimization::Step(const SingleCartPoleState& current_state,
   }
 
   mini_opt::ConstrainedNonlinearLeastSquares::Params p{};
-  p.max_iterations = 30;
+  p.max_iterations = params_.max_iterations;
   p.relative_exit_tol = 1.0e-7;
   p.max_qp_iterations = 1;
   p.max_line_search_iterations = 5;
@@ -106,6 +107,9 @@ auto CreateDynamicalConstraint(const SingleCartPoleParams params, const std::siz
                                           std::forward<decltype(x_dot_D_u)>(x_dot_D_u));
             return x_dot;
           });
+      if (x.hasNaN()) {
+        fmt::print("{}\n", fmt::streamed(x.transpose()));
+      }
       F_ASSERT(!x.hasNaN(), "x = [{}], u[{}] = {}", fmt::streamed(x.transpose()), i, u_k[i]);
     }
     x[1] = mod_pi(x[1]);
@@ -240,7 +244,7 @@ void Optimization::BuildProblem(const SingleCartPoleState& current_state,
         [num_states, i](const Eigen::Matrix<double, 1, 1>& vars,
                         Eigen::Matrix<double, 1, 1>* J_out) -> Eigen::Matrix<double, 1, 1> {
           const double weight = (i + 0.5) / static_cast<double>(num_states);
-          constexpr double scale = 200.0;
+          constexpr double scale = 100.0;
           // const double smooth_weight =
           //     scale * (3 * std::pow(weight, 2.0) - 2.0 * std::pow(weight, 3));
 
@@ -257,18 +261,21 @@ void Optimization::BuildProblem(const SingleCartPoleState& current_state,
 
   const std::size_t window_length = params_.window_length;
   const auto retraction = [num_states, window_length](Eigen::VectorXd& x,
-                                                      const mini_opt::ConstVectorBlock& dx,
+                                                      const mini_opt::ConstVectorBlock dx,
                                                       const double alpha) {
     x.noalias() += dx * alpha;
     // Modulo all the angle states:
     for (std::size_t s = 0; s < num_states; ++s) {
-      const int index = MapKey<state_dim>(KeyType::THETA_1, s, num_states);
-      x[index] = mod_pi(x[index]);
+      const int angle_index = MapKey<state_dim>(KeyType::THETA_1, s, num_states);
+      x[angle_index] = mod_pi(x[angle_index]);
+
+      const int pos_index = MapKey<state_dim>(KeyType::B_X, s, num_states);
+      x[pos_index] = std::clamp(x[pos_index], -1.0, 1.0);
     }
     // Clamp control inputs:
     for (std::size_t k = 0; k < window_length; ++k) {
       const int index = MapKey<state_dim>(KeyType::U, k, num_states);
-      x[index] = std::clamp(x[index], -600.0, 600.0);
+      x[index] = std::clamp(x[index], -300.0, 300.0);
     }
   };
   solver_ = std::make_unique<mini_opt::ConstrainedNonlinearLeastSquares>(&problem_, retraction);
