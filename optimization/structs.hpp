@@ -40,6 +40,9 @@ struct SingleCartPoleState {
   double b_x_dot;
   double th_1_dot;
 
+  // Default-constructible to support serialization.
+  SingleCartPoleState() noexcept = default;
+
   constexpr SingleCartPoleState(double b_x, double th_1, double b_x_dot, double th_1_dot) noexcept
       : b_x(b_x), th_1(th_1), b_x_dot(b_x_dot), th_1_dot(th_1_dot) {}
 

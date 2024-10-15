@@ -1,22 +1,28 @@
 import './styles.css';
 
+import { saveAs } from 'file-saver';
+
 import OptimizationWasm, {
   MainModule,
   Simulator,
   SingleCartPoleParams,
   Optimization,
-  SingleCartPoleState
+  OptimizationOutputs
 } from './optimization-wasm';
 
 import { Renderer } from './renderer';
 import { Plotter } from './plotter';
+import { TicToc } from './tic_toc';
+import { MouseHandler } from './input';
+import { SingleCartPoleState } from './interfaces';
 
 class Application {
   private wasm: MainModule;
-  private params: SingleCartPoleParams;
+  private dynamicsParams: SingleCartPoleParams;
   private simulator: Simulator;
   private optimizer: Optimization;
   private renderer: Renderer;
+  private mouseHandler: MouseHandler;
 
   // Timing control:
   private previousTime: DOMHighResTimeStamp | null = null;
@@ -25,18 +31,21 @@ class Application {
   // Plotters
   private controlPlotter: Plotter;
 
+  // An array of logged optimization outputs that we can dump to disk.
+  private loggedMessages: Array<string> = [];
+
   // UI controls
   private controlEnabled: boolean = true;
   private simRate: number = 1.0;
 
   // For collecting execution times of the optimization:
-  private optimizationStepDurations: Array<number> = [];
+  private optimizationTicToc: TicToc = new TicToc();
   private iteration: number = 0;
 
   constructor(wasm: MainModule) {
     this.wasm = wasm;
-    this.params = new this.wasm.SingleCartPoleParams(1.0, 0.1, 0.25, 9.81);
-    this.simulator = new this.wasm.Simulator(this.params);
+    this.dynamicsParams = new this.wasm.SingleCartPoleParams(1.0, 0.1, 0.25, 9.81);
+    this.simulator = new this.wasm.Simulator(this.dynamicsParams);
 
     // Some params that we fix are configured up front:
     const params = new this.wasm.OptimizationParams();
@@ -47,6 +56,7 @@ class Application {
 
     // The Renderer draws the cart-pole sim, and the plotters draw optimization outputs.
     this.renderer = new Renderer();
+    this.mouseHandler = new MouseHandler();
 
     this.controlPlotter = new Plotter('controlPlot', {
       yaxis_limit_lower: -30.0,
@@ -67,10 +77,10 @@ class Application {
   // Deallocate C++ resources.
   // This is used when running with `-fsanitize=address`.
   public cleanup() {
-    this.params.delete();
+    this.dynamicsParams.delete();
     this.simulator.delete();
     this.optimizer.delete();
-    this.params = null;
+    this.dynamicsParams = null;
     this.simulator = null;
     this.optimizer = null;
   }
@@ -88,6 +98,9 @@ class Application {
     ) as HTMLInputElement;
 
     controllerCheckbox.addEventListener('change', () => {
+      if (!this.controlEnabled && controllerCheckbox.checked) {
+        this.optimizer.reset();
+      }
       this.controlEnabled = controllerCheckbox.checked;
     });
 
@@ -98,6 +111,15 @@ class Application {
       const normalizedSliderValue =
         Math.min(Math.max(parseInt(simRateSlider.value), 0.0), sliderMax) / sliderMax;
       this.simRate = minSimRate + (1.0 - minSimRate) * normalizedSliderValue;
+    });
+
+    const saveLogButton = document.getElementById('saveLogButton') as HTMLButtonElement;
+    saveLogButton.addEventListener('click', () => {
+      // Smash all the json bits together into a single log file.
+      // TODO: This should be async probably.
+      const logContent = `[${this.loggedMessages.join(', ')}]`;
+      const blob = new Blob([logContent], { type: 'text/plain;charset=utf-8' });
+      saveAs(blob, 'log.json');
     });
   }
 
@@ -126,9 +148,15 @@ class Application {
       this.accumulatedTime -= controlDt;
     }
 
-    const current_state = this.simulator.getState();
-    this.renderer.drawSingle(current_state, this.params);
-    current_state.delete();
+    const currentState = this.simulator.getState() as SingleCartPoleState;
+    const interaction = this.mouseHandler.determineInteraction(
+      currentState,
+      this.dynamicsParams,
+      this.renderer.getPixelFromMetricTransform()
+    );
+
+    console.log(interaction);
+    this.renderer.drawSingle(currentState, this.dynamicsParams, interaction);
 
     this.previousTime = timestamp;
     this.requestFrame();
@@ -138,25 +166,33 @@ class Application {
   // Run the MPC and simulator.
   private stepControlAndSim(dt: number) {
     // Run the model predictive controller.
-    const current_state = this.simulator.getState();
-    const start_time = window.performance.now();
-    const outputs = this.optimizer.step(current_state, this.params);
-    const end_time = window.performance.now();
+    const outputs = this.optimizationTicToc.measureSpan(() => {
+      return this.optimizer.step(this.simulator.getState(), this.dynamicsParams);
+    });
 
-    // Collect samples for the optimization `step` duration.
-    // Retain a sliding window of 1000.
-    this.optimizationStepDurations.push((end_time - start_time) / 1000.0);
-    if (this.optimizationStepDurations.length > 1000) {
-      this.optimizationStepDurations.shift();
-    }
-    if (this.optimizationStepDurations.length > 1 && this.iteration % 200 == 0) {
-      const averageDuration =
-        this.optimizationStepDurations.reduce((a, b) => a + b) /
-        this.optimizationStepDurations.length;
-      const maxDuration = Math.max(...this.optimizationStepDurations);
-      console.log(`Optimization times: mean = ${averageDuration}, max = ${maxDuration}`);
+    // Update the logged state.
+    // We apply a limit on the history length to avoid exhausting memory.
+    this.loggedMessages.push(outputs.toJson());
+    if (this.loggedMessages.length > 10000) {
+      this.loggedMessages.shift();
     }
 
+    const enableTiming = false;
+    if (enableTiming && this.iteration > 0 && this.iteration % 500 == 0) {
+      const { max: max, mean: mean } = this.optimizationTicToc.computeStats();
+      console.log(`Optimization times: mean = ${mean}, max = ${max}`);
+    }
+
+    // Step the sim forward. We only apply the control if the checkbox is checked.
+    this.simulator.step(dt, this.controlEnabled ? outputs.getControl(0) : 0.0);
+
+    this.updatePlots(outputs);
+
+    // We need to manually clean up C++ objects allocated via embind.
+    outputs.delete();
+  }
+
+  private updatePlots(outputs: OptimizationOutputs) {
     let times: Float64Array = new Float64Array(outputs.windowLength());
     for (let t = 0; t < outputs.windowLength(); ++t) {
       times[t] = t * 0.01;
@@ -166,23 +202,17 @@ class Application {
     let x_states: Array<SingleCartPoleState> = [];
     times.forEach((_, index) => {
       u_controls[index] = outputs.getControl(index);
-      x_states.push(outputs.getPredictedState(index)); //  getPredictedState returns a weak ref.
+      x_states.push(outputs.getPredictedState(index) as SingleCartPoleState);
     });
 
-    const angles = new Float64Array(
-      x_states.map((x: SingleCartPoleState, _) => {
-        return x.th_1;
-      })
-    );
-
-    this.simulator.step(dt, this.controlEnabled ? u_controls[0] : 0.0);
+    // const angles = new Float64Array(
+    //   x_states.map((x: SingleCartPoleState, _) => {
+    //     return x.th_1;
+    //   })
+    // );
 
     this.controlPlotter.data = { x: times, y: u_controls };
     this.controlPlotter.draw();
-
-    // We need to manually clean up C++ objects allocated via embind.
-    outputs.delete();
-    current_state.delete();
   }
 }
 

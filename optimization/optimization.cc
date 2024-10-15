@@ -66,13 +66,12 @@ OptimizationOutputs Optimization::Step(const SingleCartPoleState& current_state,
     }
   }
 
-  // Fill the remaining states by integrating the zero guess:
+  // Fill the remaining states by integrating control guess values:
   FillInitialGuess(guess, dynamics_params, num_states);
 
   mini_opt::ConstrainedNonlinearLeastSquares::Params p{};
   p.max_iterations = static_cast<int>(params_.max_iterations);
   p.relative_exit_tol = 1.0e-7;
-  p.max_qp_iterations = 1;
   p.max_line_search_iterations = 5;
   p.absolute_first_derivative_tol = params_.absolute_first_derivative_tol;
   p.relative_exit_tol = params_.relative_exit_tol;
@@ -86,8 +85,20 @@ OptimizationOutputs Optimization::Step(const SingleCartPoleState& current_state,
   const auto u_out =
       static_cast<const Eigen::VectorXd&>(previous_solution_).tail(params_.window_length);
 
+  std::vector<SingleCartPoleState> predicted_states =
+      ComputePredictedStates(u_out, dynamics_params, current_state);
+
+#if 0
+  const SingleCartPoleState terminal_state = predicted_states.back();
+  if (std::abs(terminal_state.b_x_dot) > 2.0 || std::abs(terminal_state.th_1_dot) > 5.0) {
+    fmt::print("Will reset the optimization: {}, {}\n", terminal_state.b_x_dot,
+               terminal_state.th_1_dot);
+    previous_solution_.resize(0);
+  }
+#endif
+
   return OptimizationOutputs{std::move(outputs), std::vector<double>{u_out.begin(), u_out.end()},
-                             ComputePredictedStates(u_out, dynamics_params, current_state)};
+                             std::move(predicted_states)};
 }
 
 auto CreateDynamicalConstraint(const SingleCartPoleParams params, const std::size_t state_spacing,
@@ -117,7 +128,6 @@ auto CreateDynamicalConstraint(const SingleCartPoleParams params, const std::siz
                                           std::forward<decltype(x_dot_D_u)>(x_dot_D_u));
             return x_dot;
           });
-      F_ASSERT(!x.hasNaN(), "x = [{}], u[{}] = {}", fmt::streamed(x.transpose()), i, u_k[i]);
     }
     x[1] = mod_pi(x[1]);
 

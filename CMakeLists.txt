@@ -4,6 +4,7 @@ project(pendulum CXX)
 # If true, we adjust targets+flags to compile for WASM.
 option(BUILD_WITH_EMSCRIPTEN "Configure for compilation under emscripten." OFF)
 option(EMSCRIPTEN_ENABLE_LTO "Use LTO when building in Release mode." OFF)
+option(EMSCRIPTEN_ENABLE_SANITIZE "Use address sanitization." OFF)
 
 # emcc will not accept various arguments, like -mtune=haswell, etc. print these
 # so we can see what the user environment has specified.
@@ -16,8 +17,12 @@ if(BUILD_WITH_EMSCRIPTEN)
   # Enable debug symbols and address sanitization in Debug builds.
   if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL
                                           "RelWithDebInfo")
-    add_compile_options(-g3 -fsanitize=address)
-    add_link_options(-g3 -fsanitize=address)
+    add_compile_options(-g3)
+    add_link_options(-g3)
+    if(EMSCRIPTEN_ENABLE_SANITIZE)
+      add_compile_options(-fsanitize=address)
+      add_link_options(-fsanitize=address)
+    endif()
   endif()
   # Enable LTO in Release builds.
   if(CMAKE_BUILD_TYPE STREQUAL "Release" AND EMSCRIPTEN_ENABLE_LTO)

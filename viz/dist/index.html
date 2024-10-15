@@ -18,18 +18,23 @@
         </div>
         <div class="relative bg-slate-800 rounded-xl overflow-auto p-8">
           <div class="grid grid-rows-3">
-            <label class="text-white font-semibold">
-              <input
-                id="enableControllerCheckbox"
-                type="checkbox"
-                class="accent-green-500"
-                checked
-              />
-              Enable controller
-            </label>
+            <div>
+              <label class="text-white font-semibold">
+                <input
+                  id="enableControllerCheckbox"
+                  type="checkbox"
+                  class="accent-green-500"
+                  checked
+                />
+                Enable controller
+              </label>
+            </div>
             <div>
               <p class="text-white">Sim rate:</p>
               <input type="range" min="0" max="100" value="100" class="slider" id="simRateSlider" />
+            </div>
+            <div class="mt-2">
+              <button id="saveLogButton" type="button" class="button-30">Save Log</button>
             </div>
           </div>
         </div>

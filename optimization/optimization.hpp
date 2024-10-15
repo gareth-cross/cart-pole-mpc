@@ -60,8 +60,11 @@ class Optimization {
   explicit Optimization(const OptimizationParams& params);
 
   // Run an iteration of optimization and compute control outputs.
-  OptimizationOutputs Step(const SingleCartPoleState& current_state,
-                           const SingleCartPoleParams& dynamics_params);
+  [[nodiscard]] OptimizationOutputs Step(const SingleCartPoleState& current_state,
+                                         const SingleCartPoleParams& dynamics_params);
+
+  // Discard previous initial guess, which will reset the problem.
+  void Reset() { previous_solution_.resize(0); }
 
  private:
   void BuildProblem(const SingleCartPoleState& current_state,
