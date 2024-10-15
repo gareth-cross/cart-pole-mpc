@@ -71,7 +71,7 @@ export class Plotter {
 
     return {
       x: new Range(Math.min(...x), Math.max(...x)),
-      y: new Range(Math.min(Math.min(...y), y_min_bound), Math.max(Math.max(...y), y_max_bound))
+      y: new Range(y_min_bound, y_max_bound) //new Range(Math.min(Math.min(...y), y_min_bound), Math.max(Math.max(...y), y_max_bound))
     };
   }
 
