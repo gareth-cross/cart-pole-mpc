@@ -5,7 +5,6 @@ import { saveAs } from 'file-saver';
 import OptimizationWasm, {
   MainModule,
   Simulator,
-  SingleCartPoleParams,
   Optimization,
   OptimizationOutputs
 } from './optimization-wasm';
@@ -14,7 +13,7 @@ import { Renderer } from './renderer';
 import { Plotter } from './plotter';
 import { TicToc } from './tic_toc';
 import { MouseHandler, MouseInteraction } from './input';
-import { Point, SingleCartPoleState } from './interfaces';
+import { Point, SingleCartPoleState, SingleCartPoleParams } from './interfaces';
 
 class Application {
   private wasm: MainModule;
@@ -25,6 +24,7 @@ class Application {
   private mouseHandler: MouseHandler;
 
   // External forces placed by user interaction.
+  // There is one element in this array per mass in the system.
   private externalForces: Array<Point>;
 
   // Timing control:
@@ -47,7 +47,13 @@ class Application {
 
   constructor(wasm: MainModule) {
     this.wasm = wasm;
-    this.dynamicsParams = new this.wasm.SingleCartPoleParams(1.0, 0.1, 0.25, 9.81);
+    this.dynamicsParams = {
+      m_b: 1.0,
+      m_1: 0.1,
+      l_1: 0.25,
+      g: 9.81,
+      mu_b: 0.1
+    };
     this.simulator = new this.wasm.Simulator(this.dynamicsParams);
 
     // Some params that we fix are configured up front:
@@ -85,10 +91,8 @@ class Application {
   // Deallocate C++ resources.
   // This is used when running with `-fsanitize=address`.
   public cleanup() {
-    this.dynamicsParams.delete();
     this.simulator.delete();
     this.optimizer.delete();
-    this.dynamicsParams = null;
     this.simulator = null;
     this.optimizer = null;
   }
@@ -186,7 +190,7 @@ class Application {
       this.loggedMessages.shift();
     }
 
-    const enableTiming = false;
+    const enableTiming = true;
     if (enableTiming && this.iteration > 0 && this.iteration % 500 == 0) {
       const { max: max, mean: mean } = this.optimizationTicToc.computeStats();
       console.log(`Optimization times: mean = ${mean}, max = ${max}`);
@@ -201,6 +205,7 @@ class Application {
     outputs.delete();
   }
 
+  // Apply exponential decay to the external forces (applied by user clicking).
   private decayExternalForces(dt: number) {
     const timeConstant = 0.1;
     const clip = (v: number) => {
@@ -219,11 +224,12 @@ class Application {
       return;
     }
 
-    // Angle is in canvas-space, so swap the y-axis.
-    const normalizedForceMagnitude =
-      10.0 * (interaction.massIndex == 1 ? this.dynamicsParams.m_1 : this.dynamicsParams.m_b);
-    console.assert(interaction.massIndex < this.externalForces.length);
+    // We apply 10x whatever the mass of the contact point is:
+    const masses = [this.dynamicsParams.m_b, this.dynamicsParams.m_1];
+    const normalizedForceMagnitude = 10.0 * masses[interaction.massIndex];
 
+    // Angle is in canvas-space, so swap the y-axis into metric:
+    console.assert(interaction.massIndex < this.externalForces.length);
     this.externalForces[interaction.massIndex] = {
       x: -Math.cos(interaction.incidentAngle) * normalizedForceMagnitude,
       y: Math.sin(interaction.incidentAngle) * normalizedForceMagnitude
@@ -237,10 +243,10 @@ class Application {
     }
 
     let u_controls: Float64Array = new Float64Array(outputs.windowLength());
-    let x_states: Array<SingleCartPoleState> = [];
+    // let x_states: Array<SingleCartPoleState> = [];
     times.forEach((_, index) => {
       u_controls[index] = outputs.getControl(index);
-      x_states.push(outputs.getPredictedState(index) as SingleCartPoleState);
+      // x_states.push(outputs.getPredictedState(index) as SingleCartPoleState);
     });
 
     // const angles = new Float64Array(

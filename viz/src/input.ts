@@ -2,9 +2,9 @@ import {
   massLocationsFromState,
   Point,
   ScaleAndTranslate,
-  SingleCartPoleState
+  SingleCartPoleState,
+  SingleCartPoleParams
 } from './interfaces';
-import { SingleCartPoleParams } from './optimization-wasm';
 
 export class MouseInteraction {
   public massIndex: number;

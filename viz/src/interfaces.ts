@@ -1,10 +1,16 @@
-import { SingleCartPoleParams } from './optimization-wasm';
-
 export interface SingleCartPoleState {
   b_x: number;
   th_1: number;
   b_x_dot: number;
   th_1_dot: number;
+}
+
+export interface SingleCartPoleParams {
+  m_b: number;
+  m_1: number;
+  l_1: number;
+  g: number;
+  mu_b: number;
 }
 
 export interface Point {

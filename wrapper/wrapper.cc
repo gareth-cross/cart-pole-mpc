@@ -202,12 +202,13 @@ auto evaluate_forward_dynamics(
 void wrap_everything(nb::module_& m) {
   nb::class_<SingleCartPoleParams>(m, "SingleCartPoleParams")
       .def(nb::init<>())
-      .def(nb::init<double, double, double, double>(), nb::arg("m_b"), nb::arg("m_1"),
-           nb::arg("l_1"), nb::arg("g"))
+      .def(nb::init<double, double, double, double, double>(), nb::arg("m_b"), nb::arg("m_1"),
+           nb::arg("l_1"), nb::arg("g"), nb::arg("mu_b"))
       .def_rw("m_b", &SingleCartPoleParams::m_b)
       .def_rw("m_1", &SingleCartPoleParams::m_1)
       .def_rw("l_1", &SingleCartPoleParams::l_1)
-      .def_rw("g", &SingleCartPoleParams::g);
+      .def_rw("g", &SingleCartPoleParams::g)
+      .def_rw("mu_b", &SingleCartPoleParams::mu_b);
 
 #if 0
   m.def("evaluate_forward_dynamics_double", &evaluate_forward_dynamics<DoubleCartPoleParams, 6>,
@@ -230,7 +231,8 @@ void wrap_everything(nb::module_& m) {
       .def_rw("u_penalty", &OptimizationParams::u_penalty)
       .def_rw("u_derivative_penalty", &OptimizationParams::u_derivative_penalty)
       .def_rw("b_x_final_penalty", &OptimizationParams::b_x_final_penalty)
-      .def_rw("terminal_angle_constraint_enabled", &OptimizationParams::terminal_angle_constraint_enabled);
+      .def_rw("terminal_angle_constraint_enabled",
+              &OptimizationParams::terminal_angle_constraint_enabled);
 
   nb::class_<SingleCartPoleState>(m, "SingleCartPoleState")
       .def(nb::init<double, double, double, double>())

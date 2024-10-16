@@ -1,9 +1,9 @@
-import { SingleCartPoleParams } from './optimization-wasm';
 import {
   massLocationsFromState,
   Point,
   ScaleAndTranslate,
-  SingleCartPoleState
+  SingleCartPoleState,
+  SingleCartPoleParams
 } from './interfaces';
 import { MouseInteraction } from './input';
 
