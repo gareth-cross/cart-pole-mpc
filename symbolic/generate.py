@@ -10,8 +10,6 @@ from wrenfold import code_generation, type_info
 
 from .dynamics import get_double_pendulum_dynamics, get_single_pendulum_dynamics
 
-# from .ts_generator import TypeScriptCodeGenerator
-
 REPO_ROOT = Path(__file__).parent.parent.absolute()
 
 
@@ -36,22 +34,12 @@ def main(args: argparse.Namespace):
     elif args.version == "double":
         func = get_double_pendulum_dynamics()
 
-    # if args.target == "ts":
-    #     code = code_generation.generate_function(
-    #         func, generator=TypeScriptCodeGenerator()
-    #     )
-    #     with open(
-    #         REPO_ROOT / "site" / "src" / f"{func.__name__}.ts", "w"
-    #     ) as handle:
-    #         handle.write(TYPESCRIPT_PREAMBLE + code)
-    # elif args.target == "cpp":
-
     code = code_generation.generate_function(func, generator=CppCodeGenerator())
     output_path = REPO_ROOT / "optimization" / f"{func.__name__}.hpp"
     with open(output_path, "w") as handle:
         handle.write(
             CppCodeGenerator.apply_preamble(
-                code=code, namespace="gen", imports='#include "parameters.hpp"'
+                code=code, namespace="gen", imports='#include "structs.hpp"'
             )
         )
         handle.flush()

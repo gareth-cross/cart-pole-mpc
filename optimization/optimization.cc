@@ -123,7 +123,8 @@ auto CreateDynamicalConstraint(const SingleCartPoleParams params, const std::siz
           x, u_k[i], dt,
           [&params](const auto& x_updated, const double u, auto&& x_dot_D_x, auto&& x_dot_D_u) {
             Eigen::Matrix<double, 4, 1> x_dot;
-            gen::single_pendulum_dynamics(params, x_updated, u, x_dot,
+            const Eigen::Vector2d zero = Eigen::Vector2d::Zero();
+            gen::single_pendulum_dynamics(params, x_updated, u, zero, zero, x_dot,
                                           std::forward<decltype(x_dot_D_x)>(x_dot_D_x),
                                           std::forward<decltype(x_dot_D_u)>(x_dot_D_u));
             return x_dot;
@@ -311,7 +312,9 @@ void Optimization::FillInitialGuess(Eigen::VectorXd& guess,
           x, guess[MapKey<4>(KeyType::U, (s - 1) * params_.state_spacing + k, num_states)],
           params_.control_dt, [&dynamics_params](const auto& x_updated, const double u) {
             Eigen::Matrix<double, 4, 1> x_dot;
-            gen::single_pendulum_dynamics(dynamics_params, x_updated, u, x_dot, nullptr, nullptr);
+            const Eigen::Vector2d zero = Eigen::Vector2d::Zero();
+            gen::single_pendulum_dynamics(dynamics_params, x_updated, u, zero, zero, x_dot, nullptr,
+                                          nullptr);
             return x_dot;
           });
       x[1] = mod_pi(x[1]);
@@ -331,7 +334,9 @@ std::vector<SingleCartPoleState> Optimization::ComputePredictedStates(
     x = runge_kutta_4th_order_no_jacobians<4>(
         x, u_out[k], params_.control_dt, [&dynamics_params](const auto& x_updated, const double u) {
           Eigen::Matrix<double, 4, 1> x_dot;
-          gen::single_pendulum_dynamics(dynamics_params, x_updated, u, x_dot, nullptr, nullptr);
+          const Eigen::Vector2d zero = Eigen::Vector2d::Zero();
+          gen::single_pendulum_dynamics(dynamics_params, x_updated, u, zero, zero, x_dot, nullptr,
+                                        nullptr);
           return x_dot;
         });
     x[1] = mod_pi(x[1]);

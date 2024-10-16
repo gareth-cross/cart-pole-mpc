@@ -13,8 +13,8 @@ import OptimizationWasm, {
 import { Renderer } from './renderer';
 import { Plotter } from './plotter';
 import { TicToc } from './tic_toc';
-import { MouseHandler } from './input';
-import { SingleCartPoleState } from './interfaces';
+import { MouseHandler, MouseInteraction } from './input';
+import { Point, SingleCartPoleState } from './interfaces';
 
 class Application {
   private wasm: MainModule;
@@ -23,6 +23,9 @@ class Application {
   private optimizer: Optimization;
   private renderer: Renderer;
   private mouseHandler: MouseHandler;
+
+  // External forces placed by user interaction.
+  private externalForces: Array<Point>;
 
   // Timing control:
   private previousTime: DOMHighResTimeStamp | null = null;
@@ -53,6 +56,11 @@ class Application {
 
     this.optimizer = new this.wasm.Optimization(params);
     params.delete();
+
+    this.externalForces = [
+      { x: 0, y: 0 },
+      { x: 0, y: 0 }
+    ];
 
     // The Renderer draws the cart-pole sim, and the plotters draw optimization outputs.
     this.renderer = new Renderer();
@@ -145,6 +153,7 @@ class Application {
     this.accumulatedTime += durationInSeconds * this.simRate;
     while (this.accumulatedTime >= controlDt) {
       this.stepControlAndSim(controlDt);
+      this.decayExternalForces(controlDt);
       this.accumulatedTime -= controlDt;
     }
 
@@ -154,8 +163,8 @@ class Application {
       this.dynamicsParams,
       this.renderer.getPixelFromMetricTransform()
     );
+    this.addExternalForce(interaction);
 
-    console.log(interaction);
     this.renderer.drawSingle(currentState, this.dynamicsParams, interaction);
 
     this.previousTime = timestamp;
@@ -184,12 +193,41 @@ class Application {
     }
 
     // Step the sim forward. We only apply the control if the checkbox is checked.
-    this.simulator.step(dt, this.controlEnabled ? outputs.getControl(0) : 0.0);
+    this.simulator.step(dt, this.controlEnabled ? outputs.getControl(0) : 0.0, this.externalForces);
 
     this.updatePlots(outputs);
 
     // We need to manually clean up C++ objects allocated via embind.
     outputs.delete();
+  }
+
+  private decayExternalForces(dt: number) {
+    const timeConstant = 0.1;
+    const clip = (v: number) => {
+      return v < 1.0e-6 ? 0 : v;
+    };
+    this.externalForces = this.externalForces.map((p) => {
+      return {
+        x: clip(p.x * Math.max(0, 1 - dt / timeConstant)),
+        y: clip(p.y * Math.max(0, 1 - dt / timeConstant))
+      };
+    });
+  }
+
+  private addExternalForce(interaction: MouseInteraction | null) {
+    if (interaction == null || !interaction.clicked) {
+      return;
+    }
+
+    // Angle is in canvas-space, so swap the y-axis.
+    const normalizedForceMagnitude =
+      10.0 * (interaction.massIndex == 1 ? this.dynamicsParams.m_1 : this.dynamicsParams.m_b);
+    console.assert(interaction.massIndex < this.externalForces.length);
+
+    this.externalForces[interaction.massIndex] = {
+      x: -Math.cos(interaction.incidentAngle) * normalizedForceMagnitude,
+      y: Math.sin(interaction.incidentAngle) * normalizedForceMagnitude
+    };
   }
 
   private updatePlots(outputs: OptimizationOutputs) {

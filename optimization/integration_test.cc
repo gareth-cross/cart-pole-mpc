@@ -50,12 +50,15 @@ TEST(IntegrationTest, TestSingle) {
 
   constexpr SingleCartPoleParams params{1.0, 0.1, 0.25, 9.81};
 
+  const Eigen::Vector2d zero = Eigen::Vector2d();
+
   const auto [_, f_D_x, f_D_u] = runge_kutta_4th_order<4>(
       x, u, dt,
       [&](const Eigen::Matrix<double, 4, 1>& x_updated, const double u,
           Eigen::Matrix<double, 4, 4>& x_dot_D_x, Eigen::Matrix<double, 4, 1>& x_dot_D_u) {
         Eigen::Matrix<double, 4, 1> x_dot;
-        gen::single_pendulum_dynamics(params, x_updated, u, x_dot, x_dot_D_x, x_dot_D_u);
+        gen::single_pendulum_dynamics(params, x_updated, u, zero, zero, x_dot, x_dot_D_x,
+                                      x_dot_D_u);
         return x_dot;
       });
 
@@ -66,7 +69,8 @@ TEST(IntegrationTest, TestSingle) {
             [&](const Eigen::Matrix<double, 4, 1>& x_updated, const double u,
                 Eigen::Matrix<double, 4, 4>& x_dot_D_x, Eigen::Matrix<double, 4, 1>& x_dot_D_u) {
               Eigen::Matrix<double, 4, 1> x_dot;
-              gen::single_pendulum_dynamics(params, x_updated, u, x_dot, x_dot_D_x, x_dot_D_u);
+              gen::single_pendulum_dynamics(params, x_updated, u, zero, zero, x_dot, x_dot_D_x,
+                                            x_dot_D_u);
               return x_dot;
             }));
       });
@@ -78,7 +82,8 @@ TEST(IntegrationTest, TestSingle) {
             [&](const Eigen::Matrix<double, 4, 1>& x_updated, const double u,
                 Eigen::Matrix<double, 4, 4>& x_dot_D_x, Eigen::Matrix<double, 4, 1>& x_dot_D_u) {
               Eigen::Matrix<double, 4, 1> x_dot;
-              gen::single_pendulum_dynamics(params, x_updated, u, x_dot, x_dot_D_x, x_dot_D_u);
+              gen::single_pendulum_dynamics(params, x_updated, u, zero, zero, x_dot, x_dot_D_x,
+                                            x_dot_D_u);
               return x_dot;
             }));
       });

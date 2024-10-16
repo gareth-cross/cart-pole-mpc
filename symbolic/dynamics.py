@@ -209,10 +209,18 @@ def get_single_pendulum_dynamics() -> T.Callable:
     q_b = L.subs(b_x_dot, alpha).diff(alpha).subs(alpha, b_x_dot)
     q_th_1 = L.subs(th_1_dot, alpha).diff(alpha).subs(alpha, th_1_dot)
 
+    # Forces applied at the base and at the point mass:
+    f_b = sym.vector(*sym.symbols("f_b_x, f_b_y"))
+    f_m_1 = sym.vector(*sym.symbols("f_m1_x, f_m1_y"))
+
+    # Compute generalized forces:
+    (Q_b,) = f_b.T * sym.jacobian(b, [b_x]) + f_m_1.T * sym.jacobian(p_1, [b_x])
+    (Q_th,) = f_b.T * sym.jacobian(b, [th_1]) + f_m_1.T * sym.jacobian(p_1, [th_1])
+
     # Form the Euler-Lagrange equations (each of these is equal to zero).
     # We add in our control input `u_b`, which is a non-conservative force.
-    el_b = (q_b.diff(t) - L.diff(b_x)).distribute() - u_b
-    el_th_1 = (q_th_1.diff(t) - L.diff(th_1)).distribute()
+    el_b = (q_b.diff(t) - L.diff(b_x)).distribute() - u_b - Q_b
+    el_th_1 = (q_th_1.diff(t) - L.diff(th_1)).distribute() - Q_th
 
     # Reformulate the Euler-Lagrange equations into form:
     #   A(x, x') * x'' = f(x, x', u)
@@ -232,6 +240,8 @@ def get_single_pendulum_dynamics() -> T.Callable:
         params: SingleCartPoleParams,
         x: type_annotations.Vector4,
         u: type_annotations.FloatScalar,
+        f_base: type_annotations.Vector2,
+        f_mass: type_annotations.Vector2,
     ):
         """
         Evaluates the forward dynamics.
@@ -249,6 +259,14 @@ def get_single_pendulum_dynamics() -> T.Callable:
             )
             .subs(vel_states)
             .subs([(u_b, u)] + states)
+            .subs(
+                [
+                    (f_b[0], f_base[0]),
+                    (f_b[1], f_base[1]),
+                    (f_m_1[0], f_mass[0]),
+                    (f_m_1[1], f_mass[1]),
+                ]
+            )
         )
 
         # Stack the first derivative with the second derivative.

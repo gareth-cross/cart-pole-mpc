@@ -16,6 +16,7 @@ namespace pendulum {
 using json = nlohmann::json;
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SingleCartPoleState, b_x, th_1, th_1_dot, b_x_dot);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Vector2, x, y);
 
 // Encode to JSON, then decode in JavaScript.
 template <typename T>
@@ -62,7 +63,13 @@ EMSCRIPTEN_BINDINGS(OptimizationWasm) {
 
   em::class_<Simulator>("Simulator")
       .constructor<SingleCartPoleParams>()
-      .function("step", &Simulator::Step)
+      .function(
+          "step",
+          +[](Simulator& sim, double dt, double u, em::val f_external) {
+            const auto external_forces = StructFromObject<std::vector<Vector2>>(f_external);
+            F_ASSERT_EQ(2, external_forces.size());
+            return sim.Step(dt, u, external_forces[0], external_forces[1]);
+          })
       .function(
           "getState", +[](const Simulator& sim) { return ObjectFromStruct(sim.GetState()); })
       .function(
