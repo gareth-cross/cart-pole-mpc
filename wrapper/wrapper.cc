@@ -225,6 +225,7 @@ void wrap_everything(nb::module_& m) {
       .def_rw("max_iterations", &OptimizationParams::max_iterations)
       .def_rw("relative_exit_tol", &OptimizationParams::relative_exit_tol)
       .def_rw("absolute_first_derivative_tol", &OptimizationParams::absolute_first_derivative_tol)
+      .def_rw("equality_penalty_initial", &OptimizationParams::equality_penalty_initial)
       .def_rw("u_guess_sinusoid_amplitude", &OptimizationParams::u_guess_sinusoid_amplitude)
       .def_rw("u_penalty", &OptimizationParams::u_penalty)
       .def_rw("u_derivative_penalty", &OptimizationParams::u_derivative_penalty)
