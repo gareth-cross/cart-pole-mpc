@@ -15,6 +15,7 @@ class SingleCartPoleParams:
     l_1: type_annotations.FloatScalar
     g: type_annotations.FloatScalar
     mu_b: type_annotations.FloatScalar
+    v_mu_b: type_annotations.FloatScalar
 
 
 @dataclasses.dataclass
@@ -132,7 +133,6 @@ def get_double_pendulum_dynamics() -> T.Callable:
                     (l_1, params.l_1),
                     (l_2, params.l_2),
                     (g, params.g),
-                    (),
                 ]
             )
             .subs(vel_states)
@@ -187,8 +187,9 @@ def get_single_pendulum_dynamics() -> T.Callable:
     b_dot = b.diff(t)
     p_1_dot = p_1.diff(t)
 
-    # Friction coefficient on the base:
+    # Friction coefficient on the base, and the cutoff velocity of the smooth Coulomb model.
     mu_b = sym.symbols("mu_b", real=True)
+    v_mu_b = sym.symbols("v_mu_b", real=True)
 
     # Compute kinetic energy. This is the sum of (1/2)*m*v^2 for all pieces.
     half = 1 / sym.integer(2)
@@ -210,7 +211,8 @@ def get_single_pendulum_dynamics() -> T.Callable:
     L: sym.Expr = T - V
 
     # Compute the canonical momenta.
-    # We need a temporary variable to take derivative wrt.
+    # We need a temporary variable to take derivative wrt, because wrenfold cannot yet take the
+    # derivative wrt the Derivative(b(x), t) expression. I will hopefully fix this limitation soon.
     alpha = sym.symbols("alpha", real=True)
     q_b = L.subs(b_x_dot, alpha).diff(alpha).subs(alpha, b_x_dot)
     q_th_1 = L.subs(th_1_dot, alpha).diff(alpha).subs(alpha, th_1_dot)
@@ -223,20 +225,12 @@ def get_single_pendulum_dynamics() -> T.Callable:
     (Q_b,) = f_b.T * b.diff(b_x) + f_m_1.T * p_1.diff(b_x)
     (Q_th,) = f_b.T * b.diff(th_1) + f_m_1.T * p_1.diff(th_1)
 
-    # Dissipative power due to friction on the base.
-    D_f = mu_b * (m_1 + m_b) * g * abs(b_x_dot)
+    # Dissipative force due to friction on the base.
+    F_d_base = mu_b * (m_1 + m_b) * g * sym.tanh(b_x_dot / v_mu_b)
 
     # Form the Euler-Lagrange equations (each of these is equal to zero).
     # We add in our control input `u_b`, which is a non-conservative force.
-    el_b = (
-        (q_b.diff(t) - L.diff(b_x)).distribute()
-        - u_b
-        - Q_b
-        - D_f.subs(b_x_dot, alpha)
-        .diff(alpha)
-        .subs(alpha, b_x_dot)
-        .subs(b_x_dot / abs(b_x_dot), sym.sign(b_x_dot))
-    )
+    el_b = (q_b.diff(t) - L.diff(b_x)).distribute() - u_b - Q_b + F_d_base
     el_th_1 = (q_th_1.diff(t) - L.diff(th_1)).distribute() - Q_th
 
     # Reformulate the Euler-Lagrange equations into form:
@@ -273,6 +267,7 @@ def get_single_pendulum_dynamics() -> T.Callable:
                     (l_1, params.l_1),
                     (g, params.g),
                     (mu_b, params.mu_b),
+                    (v_mu_b, params.v_mu_b),
                 ]
             )
             .subs(vel_states)
