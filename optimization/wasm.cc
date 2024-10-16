@@ -16,6 +16,7 @@ namespace pendulum {
 using json = nlohmann::json;
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SingleCartPoleState, b_x, th_1, th_1_dot, b_x_dot);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SingleCartPoleParams, m_b, m_1, l_1, g, mu_b);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Vector2, x, y);
 
 // Encode to JSON, then decode in JavaScript.
@@ -58,15 +59,9 @@ struct adl_serializer<pendulum::OptimizationOutputs> {
 using namespace pendulum;
 
 EMSCRIPTEN_BINDINGS(OptimizationWasm) {
-  em::class_<SingleCartPoleParams>("SingleCartPoleParams")
-      .constructor<double, double, double, double>()
-      .property("m_b", &SingleCartPoleParams::m_b)
-      .property("m_1", &SingleCartPoleParams::m_1)
-      .property("l_1", &SingleCartPoleParams::l_1)
-      .property("g", &SingleCartPoleParams::g);
-
   em::class_<Simulator>("Simulator")
-      .constructor<SingleCartPoleParams>()
+      .constructor(
+          +[](em::val params) { return Simulator(StructFromObject<SingleCartPoleParams>(params)); })
       .function(
           "step",
           +[](Simulator& sim, double dt, double u, em::val f_external) {
@@ -118,8 +113,9 @@ EMSCRIPTEN_BINDINGS(OptimizationWasm) {
       .constructor<OptimizationParams>()
       .function(
           "step",
-          +[](Optimization& self, em::val state, const SingleCartPoleParams& params) {
-            return self.Step(StructFromObject<SingleCartPoleState>(state), params);
+          +[](Optimization& self, em::val state, em::val params) {
+            return self.Step(StructFromObject<SingleCartPoleState>(state),
+                             StructFromObject<SingleCartPoleParams>(params));
           })
       .function("reset", &Optimization::Reset);
 
