@@ -52,4 +52,10 @@ struct SingleCartPoleState {
   Eigen::Vector4d ToVector() const noexcept { return {b_x, th_1, b_x_dot, th_1_dot}; }
 };
 
+// For passing vectors from JavaScript to C++.
+struct Vector2 {
+  double x;
+  double y;
+};
+
 }  // namespace pendulum

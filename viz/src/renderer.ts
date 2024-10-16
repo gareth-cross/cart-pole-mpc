@@ -19,6 +19,11 @@ export class Renderer {
     this.canvas = canvas;
     this.context = context;
 
+    // Do not try to select text when double clicking the canvas:
+    this.canvas.onselectstart = function () {
+      return false;
+    };
+
     // Automatically resize when the parent div changes size:
     const canvasParent = this.canvas.parentElement as HTMLDivElement;
     new ResizeObserver(() => this.parentSizeChanged()).observe(canvasParent);
@@ -101,12 +106,16 @@ export class Renderer {
 
     if (interaction != null) {
       const locations = [baseScaled, massScaled];
-      this.drawMouseIndicator(locations[interaction.massIndex], interaction.incidentAngle);
+      this.drawMouseIndicator(
+        locations[interaction.massIndex],
+        interaction.incidentAngle,
+        interaction.clicked
+      );
     }
   }
 
   // Draw an arrow to indicate the mouse location and direction of force that will be applied.
-  private drawMouseIndicator(massLocation: Point, angle: number) {
+  private drawMouseIndicator(massLocation: Point, angle: number, clicked: boolean) {
     const arrowLength = 50.0;
     const arrowDistanceFromMass = 20.0;
     const head = {
@@ -117,10 +126,10 @@ export class Renderer {
       x: head.x + Math.cos(angle) * (arrowLength + arrowDistanceFromMass),
       y: head.y + Math.sin(angle) * (arrowLength + arrowDistanceFromMass)
     };
-    this.drawArrow(head, tail);
+    this.drawArrow(head, tail, clicked);
   }
 
-  private drawArrow(head: Point, tail: Point) {
+  private drawArrow(head: Point, tail: Point, depressed: boolean) {
     const length = Math.sqrt(Math.pow(head.x - tail.x, 2) + Math.pow(head.y - tail.y, 2));
     const headWidth = length * 0.25;
     const headLength = length * 0.25;
@@ -132,13 +141,9 @@ export class Renderer {
     // Start drawing from the tip:
     this.context.save();
     this.context.strokeStyle = '#fff7ed';
-    this.context.fillStyle = '#fb923c';
+    this.context.fillStyle = depressed ? '#c2410c' : '#fb923c';
     this.context.lineCap = 'round';
     this.context.lineJoin = 'round';
-    this.context.shadowColor = 'rgba(0, 0, 0, 0.5)';
-    this.context.shadowBlur = 10;
-    this.context.shadowOffsetX = 5;
-    this.context.shadowOffsetY = 5;
 
     this.context.beginPath();
     this.context.moveTo(head.x, head.y);
@@ -169,8 +174,20 @@ export class Renderer {
       head.y + tangent.y * headLength - normal.y * headWidth
     );
     this.context.closePath();
+
+    if (!depressed) {
+      this.context.shadowColor = 'rgba(0, 0, 0, 0.5)';
+      this.context.shadowBlur = 10;
+      this.context.shadowOffsetX = 5;
+      this.context.shadowOffsetY = 5;
+    } else {
+      this.context.shadowColor = 'rgba(0, 0, 0, 0.0)';
+    }
     this.context.fill();
+
+    this.context.shadowColor = 'rgba(0, 0, 0, 0.0)';
     this.context.stroke();
+
     this.context.restore();
   }
 }

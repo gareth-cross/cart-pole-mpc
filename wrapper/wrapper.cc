@@ -51,6 +51,7 @@ namespace pendulum {
 // We will return a:
 //  - (B, N, D) array of states over the planning horizon.
 //  - (B, N, N, D) array of derivatives of states wrt the control inputs.
+#if 0
 template <typename P, std::size_t D>
 auto evaluate_forward_dynamics(
     const std::vector<P>& params, const double dt,
@@ -196,6 +197,7 @@ auto evaluate_forward_dynamics(
       nb::ndarray<nb::numpy, const double>(x_D_u_out.data(), {B, N, N, D}, capsule),
       nb::ndarray<nb::numpy, const double>(x_D_x0_out.data(), {B, N, D, D}, capsule));
 }
+#endif
 
 void wrap_everything(nb::module_& m) {
   nb::class_<SingleCartPoleParams>(m, "SingleCartPoleParams")
@@ -207,10 +209,12 @@ void wrap_everything(nb::module_& m) {
       .def_rw("l_1", &SingleCartPoleParams::l_1)
       .def_rw("g", &SingleCartPoleParams::g);
 
+#if 0
   m.def("evaluate_forward_dynamics_double", &evaluate_forward_dynamics<DoubleCartPoleParams, 6>,
         nb::arg("params"), nb::arg("dt"), nb::arg("u"), nb::arg("x0"));
   m.def("evaluate_forward_dynamics_single", &evaluate_forward_dynamics<SingleCartPoleParams, 4>,
         nb::arg("params"), nb::arg("dt"), nb::arg("u"), nb::arg("x0"));
+#endif
 
   // Wrap the optimization:
   nb::class_<OptimizationParams>(m, "OptimizationParams")

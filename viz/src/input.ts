@@ -29,13 +29,11 @@ function indexOfSmallest<T>(a: Array<T>) {
 
 // Handle user interaction with the cart-pole system via mouse events.
 export class MouseHandler {
-  private canvas: HTMLCanvasElement;
   private mousePosition: Point | null = null;
-  private pendingClick: boolean = false;
+  private isClicking: boolean = false;
 
   constructor() {
     const canvas: HTMLCanvasElement = document.getElementById('canvas') as HTMLCanvasElement;
-    this.canvas = canvas;
 
     canvas.addEventListener('mouseenter', (e) => {
       this.mouseEnter(e);
@@ -73,13 +71,11 @@ export class MouseHandler {
     );
     const minIndex = indexOfSmallest(distances);
 
-    const minDistanceToInteract = 40.0; //  Pixels
+    const minDistanceToInteract = Number.POSITIVE_INFINITY; //  Pixels
     if (distances[minIndex] < minDistanceToInteract) {
       // Convert to an incident angle.
       const angle = Math.atan2(my - scaledLocations[minIndex].y, mx - scaledLocations[minIndex].x);
-      const clicked = this.pendingClick;
-      this.pendingClick = false;
-      return new MouseInteraction(minIndex, angle, clicked);
+      return new MouseInteraction(minIndex, angle, this.isClicking);
     }
     return null;
   }
@@ -87,15 +83,15 @@ export class MouseHandler {
   private mouseEnter(event: MouseEvent) {}
   private mouseLeave(event: MouseEvent) {
     this.mousePosition = null;
-    this.pendingClick = false;
+    this.isClicking = false;
   }
   private mouseMove(event: MouseEvent) {
     this.mousePosition = { x: event.offsetX, y: event.offsetY };
   }
   private mouseDown(event: MouseEvent) {
-    this.pendingClick = false;
+    this.isClicking = true;
   }
   private mouseUp(event: MouseEvent) {
-    this.pendingClick = true;
+    this.isClicking = false;
   }
 }
