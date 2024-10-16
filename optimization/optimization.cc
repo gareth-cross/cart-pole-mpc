@@ -74,11 +74,13 @@ OptimizationOutputs Optimization::Step(const SingleCartPoleState& current_state,
   p.relative_exit_tol = 1.0e-7;
   p.max_line_search_iterations = 5;
   p.absolute_first_derivative_tol = params_.absolute_first_derivative_tol;
+  p.equality_penalty_initial = params_.equality_penalty_initial;
   p.relative_exit_tol = params_.relative_exit_tol;
 
   mini_opt::NLSSolverOutputs outputs = solver_->Solve(p, guess);
 
   // Copy out the solution to use on the next iteration.
+  std::vector<double> previous_solution{previous_solution_.begin(), previous_solution_.end()};
   previous_solution_ = solver_->variables();
 
   // The control outputs occupy the tail of the state vector:
@@ -97,7 +99,8 @@ OptimizationOutputs Optimization::Step(const SingleCartPoleState& current_state,
   }
 #endif
 
-  return OptimizationOutputs{std::move(outputs), std::vector<double>{u_out.begin(), u_out.end()},
+  return OptimizationOutputs{current_state, std::move(previous_solution), std::move(outputs),
+                             std::vector<double>{u_out.begin(), u_out.end()},
                              std::move(predicted_states)};
 }
 

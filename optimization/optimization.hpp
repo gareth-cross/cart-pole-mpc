@@ -30,6 +30,9 @@ struct OptimizationParams {
   // See mini_opt::ConstrainedNonlinearLeastSquares::Params.
   double absolute_first_derivative_tol{1.0e-6};
 
+  // See mini_opt::ConstrainedNonlinearLeastSquares::Params.
+  double equality_penalty_initial{1.0};
+
   // Amplitude of the sinusoid that we feed in as our initial guess.
   double u_guess_sinusoid_amplitude{10.0};
 
@@ -44,6 +47,12 @@ struct OptimizationParams {
 };
 
 struct OptimizationOutputs {
+  // The initial state.
+  SingleCartPoleState initial_state;
+
+  // The initial guess for all variables.
+  std::vector<double> previous_solution;
+
   // Debug statistics from the solver itself.
   mini_opt::NLSSolverOutputs solver_outputs;
 

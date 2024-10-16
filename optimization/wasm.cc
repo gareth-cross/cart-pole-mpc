@@ -39,11 +39,15 @@ template <>
 struct adl_serializer<pendulum::OptimizationOutputs> {
   static pendulum::OptimizationOutputs from_json(const json& j) {
     return pendulum::OptimizationOutputs{
+        j["initial_state"].get<pendulum::SingleCartPoleState>(),
+        j["previous_solution"].get<std::vector<double>>(),
         j["solver_outputs"].get<mini_opt::NLSSolverOutputs>(), j["u"].get<std::vector<double>>(),
         j["predicted_states"].get<std::vector<pendulum::SingleCartPoleState>>()};
   }
 
   static void to_json(json& j, const pendulum::OptimizationOutputs& outputs) {
+    j["initial_state"] = outputs.initial_state;
+    j["previous_solution"] = outputs.previous_solution;
     j["solver_outputs"] = outputs.solver_outputs;
     j["u"] = outputs.u;
     j["predicted_states"] = outputs.predicted_states;
