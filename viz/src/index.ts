@@ -52,13 +52,15 @@ class Application {
       m_1: 0.1,
       l_1: 0.25,
       g: 9.81,
-      mu_b: 0.1
+      mu_b: 0.1,
+      v_mu_b: 0.1
     };
     this.simulator = new this.wasm.Simulator(this.dynamicsParams);
 
     // Some params that we fix are configured up front:
     const params = new this.wasm.OptimizationParams();
     params.max_iterations = 8;
+    params.window_length = 40;
 
     this.optimizer = new this.wasm.Optimization(params);
     params.delete();

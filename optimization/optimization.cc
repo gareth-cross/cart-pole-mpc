@@ -115,23 +115,38 @@ auto CreateDynamicalConstraint(const SingleCartPoleParams params, const std::siz
 
     // We need to integrate the state forward and compute the jacobian wrt the control
     // state for each moment in time.
-    std::vector<Eigen::Matrix<double, 4, 4>> x_new_D_x(state_spacing);
-    std::vector<Eigen::Matrix<double, 4, 1>> x_new_D_u(state_spacing);
+    std::vector<Eigen::Matrix<double, 4, 4>> x_new_D_x;
+    std::vector<Eigen::Matrix<double, 4, 1>> x_new_D_u;
 
     Eigen::Vector4d x = x_k;
-    for (std::size_t i = 0; i < state_spacing; ++i) {
-      // Integrate forward to get new `x`, and the jacobians wrt previous x and the control
-      // input `u`.
-      std::tie(x, x_new_D_x[i], x_new_D_u[i]) = runge_kutta_4th_order<4>(
-          x, u_k[i], dt,
-          [&params](const auto& x_updated, const double u, auto&& x_dot_D_x, auto&& x_dot_D_u) {
-            Eigen::Matrix<double, 4, 1> x_dot;
-            const Eigen::Vector2d zero = Eigen::Vector2d::Zero();
-            gen::single_pendulum_dynamics(params, x_updated, u, zero, zero, x_dot,
-                                          std::forward<decltype(x_dot_D_x)>(x_dot_D_x),
-                                          std::forward<decltype(x_dot_D_u)>(x_dot_D_u));
-            return x_dot;
-          });
+    if (J_out) {
+      x_new_D_x.resize(state_spacing);
+      x_new_D_u.resize(state_spacing);
+      for (std::size_t i = 0; i < state_spacing; ++i) {
+        // Integrate forward to get new `x`, and the jacobians wrt previous x and the control
+        // input `u`.
+        std::tie(x, x_new_D_x[i], x_new_D_u[i]) = runge_kutta_4th_order<4>(
+            x, u_k[i], dt,
+            [&params](const auto& x_updated, const double u, auto&& x_dot_D_x, auto&& x_dot_D_u) {
+              Eigen::Matrix<double, 4, 1> x_dot;
+              const Eigen::Vector2d zero = Eigen::Vector2d::Zero();
+              gen::single_pendulum_dynamics(params, x_updated, u, zero, zero, x_dot,
+                                            std::forward<decltype(x_dot_D_x)>(x_dot_D_x),
+                                            std::forward<decltype(x_dot_D_u)>(x_dot_D_u));
+              return x_dot;
+            });
+      }
+    } else {
+      for (std::size_t i = 0; i < state_spacing; ++i) {
+        x = runge_kutta_4th_order_no_jacobians(
+            x, u_k[i], dt, [&params](const auto& x_updated, const double u) {
+              Eigen::Matrix<double, 4, 1> x_dot;
+              const Eigen::Vector2d zero = Eigen::Vector2d::Zero();
+              gen::single_pendulum_dynamics(params, x_updated, u, zero, zero, x_dot, nullptr,
+                                            nullptr);
+              return x_dot;
+            });
+      }
     }
     x[1] = mod_pi(x[1]);
 

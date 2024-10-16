@@ -6,6 +6,7 @@
 #include <nlohmann/json.hpp>
 
 #include <mini_opt/serialization.hpp>
+#include <mini_opt/tracing.hpp>
 
 #include "optimization.hpp"
 #include "simulator.hpp"
@@ -16,7 +17,7 @@ namespace pendulum {
 using json = nlohmann::json;
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SingleCartPoleState, b_x, th_1, th_1_dot, b_x_dot);
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SingleCartPoleParams, m_b, m_1, l_1, g, mu_b);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SingleCartPoleParams, m_b, m_1, l_1, g, mu_b, v_mu_b);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Vector2, x, y);
 
 // Encode to JSON, then decode in JavaScript.
@@ -118,6 +119,11 @@ EMSCRIPTEN_BINDINGS(OptimizationWasm) {
                              StructFromObject<SingleCartPoleParams>(params));
           })
       .function("reset", &Optimization::Reset);
+
+#ifdef MINI_OPT_TRACING
+  em::function(
+      "getTraces", +[]() { return mini_opt::trace_collector::get_instance()->get_trace_json(); });
+#endif
 
 #if defined(__has_feature)
 #if __has_feature(address_sanitizer)
