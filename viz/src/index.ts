@@ -133,6 +133,13 @@ class Application {
       const blob = new Blob([logContent], { type: 'text/plain;charset=utf-8' });
       saveAs(blob, 'log.json');
     });
+
+    const saveTracesButton = document.getElementById('saveTracesButton') as HTMLButtonElement;
+    saveTracesButton.addEventListener('click', () => {
+      const traces = this.wasm.getTraces();
+      const blob = new Blob([traces], { type: 'text/plain;charset=utf-8' });
+      saveAs(blob, 'traces.json');
+    });
   }
 
   private animationCallback(timestamp: DOMHighResTimeStamp) {
