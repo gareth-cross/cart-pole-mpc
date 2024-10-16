@@ -202,16 +202,27 @@ void Optimization::BuildProblem(const SingleCartPoleState& current_state,
         return delta;
       }));
 
-  // Equality constraint on the final state (velocities are zero, pole is vertical).
-  problem_.equality_constraints.emplace_back(new mini_opt::Residual<3, 3>(
-      {MapKey<state_dim>(KeyType::THETA_1, num_states - 1, num_states),
-       MapKey<state_dim>(KeyType::B_X_DOT, num_states - 1, num_states),
+  if (params_.terminal_angle_constraint_enabled) {
+    problem_.equality_constraints.emplace_back(new mini_opt::Residual<1, 1>(
+        {MapKey<state_dim>(KeyType::THETA_1, num_states - 1, num_states)},
+        [](const Eigen::Matrix<double, 1, 1>& vars,
+           Eigen::Matrix<double, 1, 1>* J_out) -> Eigen::Matrix<double, 1, 1> {
+          if (J_out) {
+            J_out->setIdentity();
+          }
+          return Eigen::Matrix<double, 1, 1>{mod_pi(vars[0] - M_PI / 2)};
+        }));
+  }
+
+  // Equality constraint on the final state (velocities are zero).
+  problem_.equality_constraints.emplace_back(new mini_opt::Residual<2, 2>(
+      {MapKey<state_dim>(KeyType::B_X_DOT, num_states - 1, num_states),
        MapKey<state_dim>(KeyType::THETA_1_DOT, num_states - 1, num_states)},
-      [](const Eigen::Vector3d& vars, Eigen::Matrix<double, 3, 3>* J_out) -> Eigen::Vector3d {
+      [](const Eigen::Vector2d& vars, Eigen::Matrix<double, 2, 2>* J_out) -> Eigen::Vector2d {
         if (J_out) {
           J_out->setIdentity();
         }
-        return {mod_pi(vars[0] - M_PI / 2), vars[1], vars[2]};
+        return {vars[0], vars[1]};
       }));
 
   // Quadratic penalty on the derivative of control inputs:
