@@ -41,6 +41,9 @@ struct OptimizationParams {
   double u_derivative_penalty{0.1};
   double b_x_final_penalty{150.0};
 
+  // Is the final equality constraint on theta enabled?
+  bool terminal_angle_constraint_enabled{true};
+
   // Number of states in the window.
   // Add one for the terminal state.
   constexpr std::size_t NumStates() const noexcept { return window_length / state_spacing + 1; }
@@ -74,6 +77,12 @@ class Optimization {
 
   // Discard previous initial guess, which will reset the problem.
   void Reset() { previous_solution_.resize(0); }
+
+  // Set the previous solution, which will be used as guess on the next iteration.
+  void SetPreviousSolution(const std::vector<double>& guess) {
+    previous_solution_.resize(guess.size());
+    std::copy(guess.begin(), guess.end(), previous_solution_.begin());
+  }
 
  private:
   void BuildProblem(const SingleCartPoleState& current_state,

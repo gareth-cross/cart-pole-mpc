@@ -229,7 +229,8 @@ void wrap_everything(nb::module_& m) {
       .def_rw("u_guess_sinusoid_amplitude", &OptimizationParams::u_guess_sinusoid_amplitude)
       .def_rw("u_penalty", &OptimizationParams::u_penalty)
       .def_rw("u_derivative_penalty", &OptimizationParams::u_derivative_penalty)
-      .def_rw("b_x_final_penalty", &OptimizationParams::b_x_final_penalty);
+      .def_rw("b_x_final_penalty", &OptimizationParams::b_x_final_penalty)
+      .def_rw("terminal_angle_constraint_enabled", &OptimizationParams::terminal_angle_constraint_enabled);
 
   nb::class_<SingleCartPoleState>(m, "SingleCartPoleState")
       .def(nb::init<double, double, double, double>())
@@ -246,7 +247,8 @@ void wrap_everything(nb::module_& m) {
 
   nb::class_<Optimization>(m, "Optimization")
       .def(nb::init<const OptimizationParams&>())
-      .def("step", &Optimization::Step);
+      .def("step", &Optimization::Step)
+      .def("set_previous_solution", &Optimization::SetPreviousSolution);
 }
 
 }  // namespace pendulum
