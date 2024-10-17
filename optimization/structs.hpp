@@ -12,12 +12,13 @@ struct SingleCartPoleParams {
   double g;
   double mu_b;
   double v_mu_b;
+  double c_d_1;
 
   SingleCartPoleParams() noexcept = default;
 
   constexpr SingleCartPoleParams(double m_b, double m_1, double l_1, double g, double mu_b,
-                                 double v_mu_b) noexcept
-      : m_b(m_b), m_1(m_1), l_1(l_1), g(g), mu_b(mu_b), v_mu_b(v_mu_b) {}
+                                 double v_mu_b, double c_d_1) noexcept
+      : m_b(m_b), m_1(m_1), l_1(l_1), g(g), mu_b(mu_b), v_mu_b(v_mu_b), c_d_1(c_d_1) {}
 };
 
 // Struct used to pass parameters back and forth from Python to the dynamics model.

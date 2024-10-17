@@ -202,13 +202,16 @@ auto evaluate_forward_dynamics(
 void wrap_everything(nb::module_& m) {
   nb::class_<SingleCartPoleParams>(m, "SingleCartPoleParams")
       .def(nb::init<>())
-      .def(nb::init<double, double, double, double, double>(), nb::arg("m_b"), nb::arg("m_1"),
-           nb::arg("l_1"), nb::arg("g"), nb::arg("mu_b"))
+      .def(nb::init<double, double, double, double, double, double, double>(), nb::arg("m_b"),
+           nb::arg("m_1"), nb::arg("l_1"), nb::arg("g"), nb::arg("mu_b"), nb::arg("v_mu_b"),
+           nb::arg("c_d_1"))
       .def_rw("m_b", &SingleCartPoleParams::m_b)
       .def_rw("m_1", &SingleCartPoleParams::m_1)
       .def_rw("l_1", &SingleCartPoleParams::l_1)
       .def_rw("g", &SingleCartPoleParams::g)
-      .def_rw("mu_b", &SingleCartPoleParams::mu_b);
+      .def_rw("mu_b", &SingleCartPoleParams::mu_b)
+      .def_rw("v_mu_b", &SingleCartPoleParams::v_mu_b)
+      .def_rw("c_d_1", &SingleCartPoleParams::c_d_1);
 
 #if 0
   m.def("evaluate_forward_dynamics_double", &evaluate_forward_dynamics<DoubleCartPoleParams, 6>,

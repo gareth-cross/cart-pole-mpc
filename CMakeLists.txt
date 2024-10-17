@@ -24,10 +24,13 @@ if(BUILD_WITH_EMSCRIPTEN)
       add_link_options(-fsanitize=address)
     endif()
   endif()
-  # Enable LTO in Release builds.
-  if(CMAKE_BUILD_TYPE STREQUAL "Release" AND EMSCRIPTEN_ENABLE_LTO)
-    add_compile_options(-flto)
-    add_link_options(-flto)
+  if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    add_link_options(--profiling-funcs)
+    # Enable LTO in Release builds.
+    if(EMSCRIPTEN_ENABLE_LTO)
+      add_compile_options(-flto)
+      add_link_options(-flto)
+    endif()
   endif()
 endif()
 

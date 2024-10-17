@@ -122,6 +122,7 @@ auto CreateDynamicalConstraint(const SingleCartPoleParams params, const std::siz
     if (J_out) {
       x_new_D_x.resize(state_spacing);
       x_new_D_u.resize(state_spacing);
+
       for (std::size_t i = 0; i < state_spacing; ++i) {
         // Integrate forward to get new `x`, and the jacobians wrt previous x and the control
         // input `u`.
