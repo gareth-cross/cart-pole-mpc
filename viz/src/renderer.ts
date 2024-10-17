@@ -11,6 +11,7 @@ import { MouseInteraction } from './input';
 export class Renderer {
   private canvas: HTMLCanvasElement;
   private context: CanvasRenderingContext2D;
+  private viewportWidthMeters: number;
 
   constructor() {
     const canvas: HTMLCanvasElement = document.getElementById('canvas') as HTMLCanvasElement;
@@ -18,6 +19,7 @@ export class Renderer {
 
     this.canvas = canvas;
     this.context = context;
+    this.viewportWidthMeters = 2.0;
 
     // Do not try to select text when double clicking the canvas:
     this.canvas.onselectstart = function () {
@@ -39,9 +41,7 @@ export class Renderer {
   public getPixelFromMetricTransform(): ScaleAndTranslate {
     // The width of the viewport, in meters:
     const [ctxWidth, ctxHeight] = [this.canvas.width, this.canvas.height];
-    const viewportWidthMeters = 2.0 as const;
-    const pixelsPerMeter = ctxWidth / viewportWidthMeters;
-
+    const pixelsPerMeter = ctxWidth / this.viewportWidthMeters;
     return new ScaleAndTranslate(
       pixelsPerMeter,
       -pixelsPerMeter, //  Flip y-axis.
@@ -61,48 +61,134 @@ export class Renderer {
     // Get transformation from metric to pixels.
     const pixelFromMetric = this.getPixelFromMetricTransform();
 
-    this.context.lineCap = 'round';
-    this.context.lineJoin = 'round';
-    this.context.strokeStyle = 'black';
-    this.context.lineWidth = 1;
-
-    // Draw the horizontal axis :
-    this.context.beginPath();
-    this.context.moveTo(0.0, this.canvas.height / 2.0);
-    this.context.lineTo(this.canvas.width, this.canvas.height / 2.0);
-    this.context.stroke();
+    this.context.save();
 
     // Draw the pendulum base:
     const [base, mass] = massLocationsFromState(state, dynamicsParams);
 
+    const cartHeightMeters = 0.2;
+    const floorYMeters = -cartHeightMeters * 0.5;
+    const floorY = pixelFromMetric.transform({ x: 0, y: floorYMeters }).y;
+
+    // Draw the horizontal axis:
+    this.context.lineCap = 'butt';
+    this.context.lineJoin = 'round';
+    this.context.strokeStyle = '#FBA108';
+    this.context.lineWidth = 2;
+    this.context.beginPath();
+    this.context.moveTo(0.0, floorY);
+    this.context.lineTo(this.canvas.width, floorY);
+    this.context.stroke();
+
+    // Some lines to give the floor a bit of contrast:
+    const numFloorLines = 20;
+    for (var i = 0; i < numFloorLines; ++i) {
+      const x =
+        ((i + 0.5) / numFloorLines) * this.viewportWidthMeters - this.viewportWidthMeters * 0.5;
+      const originPt = pixelFromMetric.transform({ x: x, y: floorYMeters });
+      const terminalPt = pixelFromMetric.transform({ x: x - 0.1, y: floorYMeters - 0.1 });
+
+      this.context.lineCap = 'round';
+      var grad = this.context.createLinearGradient(
+        originPt.x,
+        originPt.y + 1.0,
+        terminalPt.x,
+        terminalPt.y + 1.0
+      );
+      grad.addColorStop(0, 'rgba(251, 161, 8, 1.0)');
+      grad.addColorStop(1, 'rgba(251, 161, 8, 0.25)');
+      this.context.strokeStyle = grad;
+      this.context.setLineDash([5, 5]);
+      this.context.beginPath();
+      this.context.moveTo(originPt.x, originPt.y + 1.0);
+      this.context.lineTo(terminalPt.x, terminalPt.y + 1.0);
+      this.context.stroke();
+      this.context.setLineDash([]);
+    }
+
+    // Draw the cart body:
+    const bodyPts = [
+      { x: 0, y: 1 },
+      { x: 1, y: 1 },
+      { x: 2, y: 3 },
+      { x: 4, y: 3 },
+      { x: 5, y: 1 },
+      { x: 7, y: 1 },
+      { x: 8, y: 3 },
+      { x: 10, y: 3 },
+      { x: 11, y: 1 },
+      { x: 12, y: 1 },
+      { x: 12, y: 6 },
+      { x: 11, y: 7 },
+      { x: 1, y: 7 },
+      { x: 0, y: 6 }
+    ];
+
+    const wheelPositions = [
+      { x: 3, y: 2 },
+      { x: 9, y: 2 }
+    ];
+
+    const cartScale = cartHeightMeters / 7;
+    const worldFromCart = new ScaleAndTranslate(
+      cartScale,
+      cartScale,
+      -cartScale * 6 + base.x,
+      -cartScale * 3.5 + base.y
+    );
+
+    // Draw wheels first
+    wheelPositions.forEach((p) => {
+      const q = pixelFromMetric.transform(worldFromCart.transform(p));
+      this.context.beginPath();
+      this.context.arc(q.x, q.y, pixelFromMetric.sx * 0.05, 0, 2 * Math.PI, false);
+      this.context.fillStyle = '#525252';
+      this.context.fill();
+      this.context.strokeStyle = '#e5e5e5';
+      this.context.lineWidth = 2;
+      this.context.stroke();
+    });
+
+    // Then body
+    this.context.save();
+    this.context.fillStyle = '#0f766e';
+    this.context.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    this.context.shadowBlur = 5;
+    this.context.shadowOffsetX = 0;
+    this.context.shadowOffsetY = 0;
+    this.context.beginPath();
+    bodyPts.forEach((p, index) => {
+      const q = pixelFromMetric.transform(worldFromCart.transform(p));
+      if (index == 0) {
+        this.context.moveTo(q.x, q.y);
+      } else {
+        this.context.lineTo(q.x, q.y);
+      }
+    });
+    this.context.fill();
+    this.context.restore();
+
     const baseScaled = pixelFromMetric.transform(base);
     const massScaled = pixelFromMetric.transform(mass);
 
-    const baseWidthPixels = 0.1 * pixelFromMetric.sx;
-    const baseHeightPixels = 0.1 * pixelFromMetric.sy;
-
-    this.context.fillStyle = 'rgb(193 41 46)';
-    this.context.beginPath();
-    this.context.fillRect(
-      baseScaled.x - baseWidthPixels * 0.5,
-      baseScaled.y - baseHeightPixels * 0.5,
-      baseWidthPixels,
-      baseHeightPixels
-    );
-
     // Draw the arm:
-    this.context.lineWidth = 4;
+    this.context.lineWidth = 3;
+    this.context.lineCap = 'round';
     this.context.beginPath();
     this.context.moveTo(baseScaled.x, baseScaled.y);
     this.context.lineTo(massScaled.x, massScaled.y);
     this.context.stroke();
 
     // Draw the point mass:
-    const pointRadiusPixels = 6.0;
-    this.context.fillStyle = 'rgb(35 87 137)';
+    const pointRadiusPixels = pixelFromMetric.sx * 0.03;
+    this.context.fillStyle = '#991b1b';
     this.context.beginPath();
     this.context.arc(massScaled.x, massScaled.y, pointRadiusPixels, 0, 2 * Math.PI, false);
     this.context.fill();
+    this.context.lineWidth = 2;
+    this.context.stroke();
+
+    this.context.restore();
 
     if (interaction != null) {
       const locations = [baseScaled, massScaled];
@@ -144,6 +230,7 @@ export class Renderer {
     this.context.fillStyle = depressed ? '#c2410c' : '#fb923c';
     this.context.lineCap = 'round';
     this.context.lineJoin = 'round';
+    this.context.lineWidth = 4;
 
     this.context.beginPath();
     this.context.moveTo(head.x, head.y);
