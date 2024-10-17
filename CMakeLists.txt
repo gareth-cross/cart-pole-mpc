@@ -38,6 +38,9 @@ endif()
 if(NOT BUILD_WITH_EMSCRIPTEN)
   enable_testing()
 
+  # Required to build the shared-object wrapper.
+  set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
   # Find python (required for nanobind)
   find_package(
     Python 3.9
