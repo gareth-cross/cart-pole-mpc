@@ -716,10 +716,10 @@ TEST(OptimizationTest, TestCartPoleMultipleShootingClosedLoop2) {
   optimization_params.state_spacing = 5;
 
   // Parameters of the pendulum system
-  constexpr SingleCartPoleParams dynamics_params{1.0, 0.1, 0.25, 9.81};
+  constexpr SingleCartPoleParams dynamics_params{1.0, 0.1, 0.25, 9.81, 0.0, 0.1, 0.0};
 
-  // The initial state of the system: -M_PI / 2
-  constexpr SingleCartPoleState x0{0.0, 0.0, 0.0, 0.0};
+  // The initial state of the system: -pi / 2
+  constexpr SingleCartPoleState x0{0.0, -M_PI / 2, 0.0, 0.0};
 
   std::vector<SingleCartPoleState> states{};
   states.reserve(num_steps);
@@ -738,7 +738,7 @@ TEST(OptimizationTest, TestCartPoleMultipleShootingClosedLoop2) {
     // Step the optimization and compute a control output:
     const OptimizationOutputs outputs = optimization.Step(sim.GetState(), dynamics_params);
 
-    sim.Step(optimization_params.control_dt, outputs.u.front());
+    sim.Step(optimization_params.control_dt, outputs.u.front(), {0, 0}, {0, 0});
 
     states.push_back(sim.GetState());
     controls.push_back(outputs.u.front());

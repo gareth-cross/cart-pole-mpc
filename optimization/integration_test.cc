@@ -1,6 +1,5 @@
-// Unit test integration code.
-// Copyright 2024 Gareth Cross.
-
+// Copyright (c) 2024 Gareth Cross.
+#include <fmt/ostream.h>
 #include <gtest/gtest.h>
 
 #include "integration.hpp"
@@ -48,9 +47,9 @@ TEST(IntegrationTest, TestSingle) {
   constexpr double u = 0.1;
   constexpr double dt = 0.01;
 
-  constexpr SingleCartPoleParams params{1.0, 0.1, 0.25, 9.81};
+  constexpr SingleCartPoleParams params{1.0, 0.1, 0.25, 9.81, 0.0, 0.1, 0.0};
 
-  const Eigen::Vector2d zero = Eigen::Vector2d();
+  const Eigen::Vector2d zero = Eigen::Vector2d::Zero();
 
   const auto [_, f_D_x, f_D_u] = runge_kutta_4th_order<4>(
       x, u, dt,

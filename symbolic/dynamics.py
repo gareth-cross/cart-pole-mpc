@@ -16,6 +16,7 @@ class SingleCartPoleParams:
     g: type_annotations.FloatScalar
     mu_b: type_annotations.FloatScalar
     v_mu_b: type_annotations.FloatScalar
+    c_d_1: type_annotations.FloatScalar
 
 
 @dataclasses.dataclass
@@ -181,15 +182,19 @@ def get_single_pendulum_dynamics() -> T.Callable:
     # Control input on the base:
     u_b = sym.symbols("u_b", real=True)
 
+    # Friction coefficient on the base, and the cutoff velocity of the smooth Coulomb model.
+    mu_b = sym.symbols("mu_b", real=True)
+    v_mu_b = sym.symbols("v_mu_b", real=True)
+
+    # Air drag coefficient on the mass:
+    # This is summarized as: rho * C_d * A, where rho is air density, and A is cross-sectional area.
+    c_d_1 = sym.symbols("c_d_1", real=True)
+
     # Positions of base, and pole mounted weight.
     b = sym.vector(b_x, 0)
     p_1 = b + sym.vector(sym.cos(th_1), sym.sin(th_1)) * l_1
     b_dot = b.diff(t)
     p_1_dot = p_1.diff(t)
-
-    # Friction coefficient on the base, and the cutoff velocity of the smooth Coulomb model.
-    mu_b = sym.symbols("mu_b", real=True)
-    v_mu_b = sym.symbols("v_mu_b", real=True)
 
     # Compute kinetic energy. This is the sum of (1/2)*m*v^2 for all pieces.
     half = 1 / sym.integer(2)
@@ -226,12 +231,30 @@ def get_single_pendulum_dynamics() -> T.Callable:
     (Q_th,) = f_b.T * b.diff(th_1) + f_m_1.T * p_1.diff(th_1)
 
     # Dissipative force due to friction on the base.
-    F_d_base = mu_b * (m_1 + m_b) * g * sym.tanh(b_x_dot / v_mu_b)
+    F_friction_base = mu_b * (m_1 + m_b) * g * sym.tanh(b_x_dot / v_mu_b)
+
+    # Dissipative _power_ due to air drag on the pendulum mass.
+    # We use a `where` statement to guard against a singularity in the Jacobian.
+    D_air_mass = (
+        (sym.integer(1) / 6)
+        * c_d_1
+        * sym.where(p_1_dot.squared_norm() > 0, p_1_dot.norm() ** 3, 0)
+    )
 
     # Form the Euler-Lagrange equations (each of these is equal to zero).
     # We add in our control input `u_b`, which is a non-conservative force.
-    el_b = (q_b.diff(t) - L.diff(b_x)).distribute() - u_b - Q_b + F_d_base
-    el_th_1 = (q_th_1.diff(t) - L.diff(th_1)).distribute() - Q_th
+    el_b = (
+        (q_b.diff(t) - L.diff(b_x)).distribute()
+        - u_b
+        - Q_b
+        + F_friction_base
+        + D_air_mass.subs(b_x_dot, alpha).diff(alpha).subs(alpha, b_x_dot)
+    )
+    el_th_1 = (
+        (q_th_1.diff(t) - L.diff(th_1)).distribute()
+        - Q_th
+        + D_air_mass.subs(th_1_dot, alpha).diff(alpha).subs(alpha, th_1_dot)
+    )
 
     # Reformulate the Euler-Lagrange equations into form:
     #   A(x, x') * x'' = f(x, x', u)
@@ -268,6 +291,7 @@ def get_single_pendulum_dynamics() -> T.Callable:
                     (g, params.g),
                     (mu_b, params.mu_b),
                     (v_mu_b, params.v_mu_b),
+                    (c_d_1, params.c_d_1),
                 ]
             )
             .subs(vel_states)
