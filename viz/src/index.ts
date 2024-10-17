@@ -196,11 +196,11 @@ class Application {
     // Update the logged state.
     // We apply a limit on the history length to avoid exhausting memory.
     this.loggedMessages.push(outputs.toJson());
-    if (this.loggedMessages.length > 10000) {
+    if (this.loggedMessages.length > 5000) {
       this.loggedMessages.shift();
     }
 
-    const enableTiming = true;
+    const enableTiming = false;
     if (enableTiming && this.iteration > 0 && this.iteration % 500 == 0) {
       const { max: max, mean: mean } = this.optimizationTicToc.computeStats();
       console.log(`Optimization times: mean = ${mean}, max = ${max}`);
@@ -219,7 +219,7 @@ class Application {
   private decayExternalForces(dt: number) {
     const timeConstant = 0.1;
     const clip = (v: number) => {
-      return v < 1.0e-6 ? 0 : v;
+      return Math.abs(v) < 1.0e-6 ? 0 : v;
     };
     this.externalForces = this.externalForces.map((p) => {
       return {

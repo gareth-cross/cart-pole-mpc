@@ -231,7 +231,9 @@ def get_single_pendulum_dynamics() -> T.Callable:
     (Q_th,) = f_b.T * b.diff(th_1) + f_m_1.T * p_1.diff(th_1)
 
     # Dissipative force due to friction on the base.
-    F_friction_base = mu_b * (m_1 + m_b) * g * sym.tanh(b_x_dot / v_mu_b)
+    F_friction_base = (
+        mu_b * (m_1 + m_b) * g * sym.tanh(b_x_dot / sym.max(v_mu_b, 1.0e-6))
+    )
 
     # Dissipative _power_ due to air drag on the pendulum mass.
     # We use a `where` statement to guard against a singularity in the Jacobian.
