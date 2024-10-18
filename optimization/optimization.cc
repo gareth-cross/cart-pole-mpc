@@ -128,24 +128,19 @@ auto CreateDynamicalConstraint(const SingleCartPoleParams params, const std::siz
         // input `u`.
         std::tie(x, x_new_D_x[i], x_new_D_u[i]) = runge_kutta_4th_order<4>(
             x, u_k[i], dt,
-            [&params](const auto& x_updated, const double u, auto&& x_dot_D_x, auto&& x_dot_D_u) {
-              Eigen::Matrix<double, 4, 1> x_dot;
+            [&params](const auto& x_updated, const double u, auto& x_dot_D_x, auto& x_dot_D_u) {
               const Eigen::Vector2d zero = Eigen::Vector2d::Zero();
-              gen::single_pendulum_dynamics(params, x_updated, u, zero, zero, x_dot,
-                                            std::forward<decltype(x_dot_D_x)>(x_dot_D_x),
-                                            std::forward<decltype(x_dot_D_u)>(x_dot_D_u));
-              return x_dot;
+              return gen::single_pendulum_dynamics(params, x_updated, u, zero, zero, x_dot_D_x,
+                                                   x_dot_D_u);
             });
       }
     } else {
       for (std::size_t i = 0; i < state_spacing; ++i) {
         x = runge_kutta_4th_order_no_jacobians(
             x, u_k[i], dt, [&params](const auto& x_updated, const double u) {
-              Eigen::Matrix<double, 4, 1> x_dot;
               const Eigen::Vector2d zero = Eigen::Vector2d::Zero();
-              gen::single_pendulum_dynamics(params, x_updated, u, zero, zero, x_dot, nullptr,
-                                            nullptr);
-              return x_dot;
+              return gen::single_pendulum_dynamics(params, x_updated, u, zero, zero, nullptr,
+                                                   nullptr);
             });
       }
     }
@@ -341,11 +336,9 @@ void Optimization::FillInitialGuess(Eigen::VectorXd& guess,
       x = runge_kutta_4th_order_no_jacobians<4>(
           x, guess[MapKey<4>(KeyType::U, (s - 1) * params_.state_spacing + k, num_states)],
           params_.control_dt, [&dynamics_params](const auto& x_updated, const double u) {
-            Eigen::Matrix<double, 4, 1> x_dot;
             const Eigen::Vector2d zero = Eigen::Vector2d::Zero();
-            gen::single_pendulum_dynamics(dynamics_params, x_updated, u, zero, zero, x_dot, nullptr,
-                                          nullptr);
-            return x_dot;
+            return gen::single_pendulum_dynamics(dynamics_params, x_updated, u, zero, zero, nullptr,
+                                                 nullptr);
           });
       x[1] = mod_pi(x[1]);
     }
@@ -363,11 +356,9 @@ std::vector<SingleCartPoleState> Optimization::ComputePredictedStates(
   for (std::size_t k = 0; k < params_.window_length; ++k) {
     x = runge_kutta_4th_order_no_jacobians<4>(
         x, u_out[k], params_.control_dt, [&dynamics_params](const auto& x_updated, const double u) {
-          Eigen::Matrix<double, 4, 1> x_dot;
           const Eigen::Vector2d zero = Eigen::Vector2d::Zero();
-          gen::single_pendulum_dynamics(dynamics_params, x_updated, u, zero, zero, x_dot, nullptr,
-                                        nullptr);
-          return x_dot;
+          return gen::single_pendulum_dynamics(dynamics_params, x_updated, u, zero, zero, nullptr,
+                                               nullptr);
         });
     x[1] = mod_pi(x[1]);
     predicted_states.emplace_back(x);

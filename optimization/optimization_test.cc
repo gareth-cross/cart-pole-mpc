@@ -17,7 +17,7 @@ TEST(OptimizationTest, TestCartPoleMultipleShootingClosedLoop) {
   optimization_params.max_iterations = 10;
 
   // Parameters of the pendulum system
-  constexpr SingleCartPoleParams dynamics_params{1.0, 0.1, 0.25, 9.81, 0.03, 0.1, 0.13};
+  constexpr SingleCartPoleParams dynamics_params{1.0, 0.1, 0.25, 9.81, 0.03, 0.1, 0.13, 0.8, 100.0};
 
   // The initial state of the system: -pi / 2
   constexpr SingleCartPoleState x0{0.0, -M_PI / 2, 0.0, 0.0};

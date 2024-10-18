@@ -32,10 +32,7 @@ END_THIRD_PARTY_INCLUDES
 
 #include <mini_opt/assertions.hpp>
 
-#include "double_pendulum_dynamics.hpp"
-#include "integration.hpp"
 #include "optimization.hpp"
-#include "single_pendulum_dynamics.hpp"
 
 namespace nb = nanobind;
 namespace pendulum {
@@ -202,16 +199,18 @@ auto evaluate_forward_dynamics(
 void wrap_everything(nb::module_& m) {
   nb::class_<SingleCartPoleParams>(m, "SingleCartPoleParams")
       .def(nb::init<>())
-      .def(nb::init<double, double, double, double, double, double, double>(), nb::arg("m_b"),
-           nb::arg("m_1"), nb::arg("l_1"), nb::arg("g"), nb::arg("mu_b"), nb::arg("v_mu_b"),
-           nb::arg("c_d_1"))
+      .def(nb::init<double, double, double, double, double, double, double, double, double>(),
+           nb::arg("m_b"), nb::arg("m_1"), nb::arg("l_1"), nb::arg("g"), nb::arg("mu_b"),
+           nb::arg("v_mu_b"), nb::arg("c_d_1"), nb::arg("x_s"), nb::arg("k_s"))
       .def_rw("m_b", &SingleCartPoleParams::m_b)
       .def_rw("m_1", &SingleCartPoleParams::m_1)
       .def_rw("l_1", &SingleCartPoleParams::l_1)
       .def_rw("g", &SingleCartPoleParams::g)
       .def_rw("mu_b", &SingleCartPoleParams::mu_b)
       .def_rw("v_mu_b", &SingleCartPoleParams::v_mu_b)
-      .def_rw("c_d_1", &SingleCartPoleParams::c_d_1);
+      .def_rw("c_d_1", &SingleCartPoleParams::c_d_1)
+      .def_rw("x_s", &SingleCartPoleParams::x_s)
+      .def_rw("k_s", &SingleCartPoleParams::k_s);
 
 #if 0
   m.def("evaluate_forward_dynamics_double", &evaluate_forward_dynamics<DoubleCartPoleParams, 6>,

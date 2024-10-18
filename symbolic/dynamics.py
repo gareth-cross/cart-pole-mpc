@@ -329,7 +329,7 @@ def get_single_pendulum_dynamics() -> T.Callable:
         J_u = sym.jacobian(x_dot_out, [u])
 
         return [
-            code_generation.OutputArg(x_dot_out, name="x_dot"),
+            code_generation.ReturnValue(x_dot_out),
             code_generation.OutputArg(J_x, name="J_x", is_optional=True),
             code_generation.OutputArg(J_u, name="J_u", is_optional=True),
         ]

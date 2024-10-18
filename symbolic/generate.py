@@ -6,7 +6,7 @@ import argparse
 import subprocess
 from pathlib import Path
 
-from wrenfold import code_generation, type_info
+from wrenfold import ast, code_generation, type_info
 
 from .dynamics import get_double_pendulum_dynamics, get_single_pendulum_dynamics
 
@@ -26,6 +26,13 @@ class CppCodeGenerator(code_generation.CppGenerator):
 
     def format_custom_type(self, custom: type_info.CustomType) -> str:
         return f"pendulum::{custom.name}"
+
+    def format_matrix_type(self, mat: type_info.MatrixType) -> str:
+        return f"Eigen::Matrix<Scalar, {mat.rows}, {mat.cols}>"
+
+    def format_construct_matrix(self, construct: ast.ConstructMatrix) -> str:
+        formatted_args = ", ".join(self.format(x) for x in construct.args)
+        return f"Eigen::Matrix<double, {construct.type.rows}, {construct.type.cols}>({formatted_args})"
 
 
 def main(args: argparse.Namespace):
