@@ -40,22 +40,6 @@ struct SingleCartPoleParams {
         k_s(k_s) {}
 };
 
-// Struct used to pass parameters back and forth from Python to the dynamics model.
-struct DoubleCartPoleParams {
-  double m_b;
-  double m_1;
-  double m_2;
-  double l_1;
-  double l_2;
-  double g;
-
-  DoubleCartPoleParams() noexcept = default;
-
-  constexpr DoubleCartPoleParams(double m_b, double m_1, double m_2, double l_1, double l_2,
-                                 double g) noexcept
-      : m_b(m_b), m_1(m_1), m_2(m_2), l_1(l_1), l_2(l_2), g(g) {}
-};
-
 // State of the single cart-pole system.
 struct SingleCartPoleState {
   // Base position on x-axis, b_x(t).
