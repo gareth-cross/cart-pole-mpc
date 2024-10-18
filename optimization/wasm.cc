@@ -20,6 +20,11 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SingleCartPoleState, b_x, th_1, th_1_dot, b_x
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SingleCartPoleParams, m_b, m_1, l_1, g, mu_b, v_mu_b, c_d_1, x_s,
                                    k_s);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Vector2, x, y);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(OptimizationParams, control_dt, window_length, state_spacing,
+                                   max_iterations, relative_exit_tol, absolute_first_derivative_tol,
+                                   equality_penalty_initial, u_guess_sinusoid_amplitude, u_penalty,
+                                   u_derivative_penalty, b_x_final_penalty,
+                                   terminal_angle_constraint_enabled);
 
 // Encode to JSON, then decode in JavaScript.
 template <typename T>
@@ -78,19 +83,6 @@ EMSCRIPTEN_BINDINGS(OptimizationWasm) {
             sim.SetState(StructFromObject<SingleCartPoleState>(state));
           });
 
-  em::class_<OptimizationParams>("OptimizationParams")
-      .constructor<>()
-      .property("control_dt", &OptimizationParams::control_dt)
-      .property("window_length", &OptimizationParams::window_length)
-      .property("state_spacing", &OptimizationParams::state_spacing)
-      .property("max_iterations", &OptimizationParams::max_iterations)
-      .property("relative_exit_tol", &OptimizationParams::relative_exit_tol)
-      .property("absolute_first_derivative_tol", &OptimizationParams::absolute_first_derivative_tol)
-      .property("u_guess_sinusoid_amplitude", &OptimizationParams::u_guess_sinusoid_amplitude)
-      .property("u_penalty", &OptimizationParams::u_penalty)
-      .property("u_derivative_penalty", &OptimizationParams::u_derivative_penalty)
-      .property("b_x_final_penalty", &OptimizationParams::b_x_final_penalty);
-
   em::class_<OptimizationOutputs>("OptimizationOutputs")
       .function(
           "getLog", +[](const OptimizationOutputs& self) { return self.solver_outputs.ToString(); })
@@ -112,7 +104,9 @@ EMSCRIPTEN_BINDINGS(OptimizationWasm) {
           "toJson", +[](const OptimizationOutputs& self) { return json(self).dump(); });
 
   em::class_<Optimization>("Optimization")
-      .constructor<OptimizationParams>()
+      .constructor(+[](em::val params) {
+        return Optimization(StructFromObject<OptimizationParams>(params));
+      })
       .function(
           "step",
           +[](Optimization& self, em::val state, em::val params) {
@@ -120,6 +114,9 @@ EMSCRIPTEN_BINDINGS(OptimizationWasm) {
                              StructFromObject<SingleCartPoleParams>(params));
           })
       .function("reset", &Optimization::Reset);
+
+  em::function(
+      "getDefaultOptimizationParams", +[]() { return ObjectFromStruct(OptimizationParams{}); });
 
 #ifdef MINI_OPT_TRACING
   em::function(

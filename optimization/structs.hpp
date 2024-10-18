@@ -6,14 +6,23 @@ namespace pendulum {
 
 // Parameters of the single-pole system.
 struct SingleCartPoleParams {
+  // Mass of the base (kg).
   double m_b;
+  // Mass of the object on the pole (kg).
   double m_1;
+  // Length of the pole (meters).
   double l_1;
+  // Gravity (m/s^2).
   double g;
+  // Friction at the base.
   double mu_b;
+  // Cutoff velocity of the smoothed Coulomb model (m/s).
   double v_mu_b;
+  // Drag coefficient on the pole mass (W / (m/s)^3).
   double c_d_1;
+  // Position of the bumper springs (meters).
   double x_s;
+  // Spring constant of the bumper sprints (N/m).
   double k_s;
 
   SingleCartPoleParams() noexcept = default;
@@ -49,9 +58,13 @@ struct DoubleCartPoleParams {
 
 // State of the single cart-pole system.
 struct SingleCartPoleState {
+  // Base position on x-axis, b_x(t).
   double b_x;
+  // Angle of the pole, θ(t).
   double th_1;
+  // Derivative of b_x(t).
   double b_x_dot;
+  // Derivative of θ(t).
   double th_1_dot;
 
   // Default-constructible to support serialization.
