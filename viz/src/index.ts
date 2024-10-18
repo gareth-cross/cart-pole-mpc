@@ -81,11 +81,11 @@ class Application {
       yAxisLimitUpper: 50.0,
       gridX: {
         majorInterval: 0.1, //  Seconds.
-        numMinorTicks: 1
+        numMinorTicks: 0
       },
       gridY: {
         majorInterval: 10.0, //  Newtons.
-        numMinorTicks: 1
+        numMinorTicks: 0
       }
     });
 
@@ -122,7 +122,7 @@ class Application {
 
     const simRateSlider = document.getElementById('simRateSlider') as HTMLInputElement;
     simRateSlider.addEventListener('change', () => {
-      const minSimRate = 0.05;
+      const minSimRate = 0.0;
       const sliderMax = 100.0;
       const normalizedSliderValue =
         Math.min(Math.max(parseInt(simRateSlider.value), 0.0), sliderMax) / sliderMax;
@@ -181,6 +181,7 @@ class Application {
     this.addExternalForce(interaction);
 
     this.renderer.drawSingle(currentState, this.dynamicsParams, interaction);
+    this.controlPlotter.draw();
 
     this.previousTime = timestamp;
     this.requestFrame();
@@ -267,7 +268,6 @@ class Application {
     // );
 
     this.controlPlotter.data = { x: times, y: u_controls };
-    this.controlPlotter.draw();
   }
 }
 

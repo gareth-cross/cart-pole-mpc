@@ -66,3 +66,12 @@ export function massLocationsFromState(
     { x: x1, y: y1 }
   ];
 }
+
+export function indexOfSmallest<T>(a: Array<T>) {
+  console.assert(a.length > 0);
+  var lowest = 0;
+  for (var i = 1; i < a.length; i++) {
+    if (a[i] < a[lowest]) lowest = i;
+  }
+  return lowest;
+}

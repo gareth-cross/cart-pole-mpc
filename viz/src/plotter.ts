@@ -1,5 +1,5 @@
 // Copyright 2024 Gareth Cross.
-import { ScaleAndTranslate } from './interfaces';
+import { ScaleAndTranslate, Point } from './interfaces';
 
 class Range {
   public min: number;
@@ -42,8 +42,10 @@ export interface TickMark {
 // A simple plotter.
 export class Plotter {
   private canvas: HTMLCanvasElement;
+  private overlayDiv: HTMLDivElement;
   private context: CanvasRenderingContext2D;
   private config: PlotterConfig;
+  private mousePosition: Point | null = null;
 
   // Plot data we can render in this context.
   public data: { x: Float64Array; y: Float64Array } | null = null;
@@ -53,16 +55,29 @@ export class Plotter {
     console.assert(parent != null, `Element with id ${parent_id} does not exist.`);
 
     this.canvas = document.createElement('canvas') as HTMLCanvasElement;
+    this.canvas.style.position = 'absolute';
     this.canvas.style.width = '100%';
     this.canvas.style.height = '320px';
     this.context = this.canvas.getContext('2d');
     parent.appendChild(this.canvas);
+
+    this.overlayDiv = document.createElement('div') as HTMLDivElement;
+    this.overlayDiv.style.position = 'absolute';
+    this.overlayDiv.style.right = '10px';
+    parent.appendChild(this.overlayDiv);
 
     this.config = config;
 
     // Automatically resize when the parent div changes size:
     new ResizeObserver(() => this.parentSizeChanged()).observe(parent);
     this.parentSizeChanged();
+
+    this.canvas.addEventListener('mouseleave', (e) => {
+      this.mouseLeave(e);
+    });
+    this.canvas.addEventListener('mousemove', (e) => {
+      this.mouseMove(e);
+    });
   }
 
   private parentSizeChanged() {
@@ -93,6 +108,8 @@ export class Plotter {
   public draw() {
     const [ctxWidth, ctxHeight] = [this.canvas.width, this.canvas.height];
     this.context.clearRect(0, 0, ctxWidth, ctxHeight);
+    this.context.fillStyle = '#E6ECF6';
+    this.context.fillRect(0, 0, ctxWidth, ctxHeight);
 
     if (this.data == null) {
       return;
@@ -123,10 +140,10 @@ export class Plotter {
 
     const pixelsFromNorm = this.getPixelFromNormalizedTransform();
     const xDataScaled: Float64Array = xData.map((x) => {
-      return pixelsFromNorm.sx * rangeX.convertFrom(x) + pixelsFromNorm.tx;
+      return pixelsFromNorm.transformX(rangeX.convertFrom(x));
     });
     const yDataScaled: Float64Array = yData.map((y) => {
-      return pixelsFromNorm.sy * rangeY.convertFrom(y) + pixelsFromNorm.ty;
+      return pixelsFromNorm.transformY(rangeY.convertFrom(y));
     });
 
     this.context.beginPath();
@@ -135,6 +152,9 @@ export class Plotter {
       this.context.lineTo(xDataScaled[i], yDataScaled[i]);
     }
     this.context.stroke();
+
+    // Draw hover indicator where the user selects.
+    this.drawMouseReticule(rangeX, rangeY);
   }
 
   // Compute the positions where grid-markings should be drawn on the chart.
@@ -171,7 +191,7 @@ export class Plotter {
     this.context.save();
     this.context.lineCap = 'round';
     this.context.lineJoin = 'round';
-    this.context.strokeStyle = 'rgb(244 114 182)';
+    this.context.strokeStyle = '#737373';
 
     const pixelsFromNorm = this.getPixelFromNormalizedTransform();
 
@@ -220,8 +240,8 @@ export class Plotter {
     });
 
     // First we draw lines for the axes:
-    this.context.strokeStyle = '#f5f5f4';
-    this.context.fillStyle = '#f5f5f4';
+    this.context.strokeStyle = '#171717';
+    this.context.fillStyle = '#171717';
     this.context.lineWidth = 2;
     this.context.lineCap = 'round';
     this.context.beginPath();
@@ -254,10 +274,71 @@ export class Plotter {
         this.context.moveTo(x0 + tickLength, y);
         this.context.lineTo(x0 - tickLength, y);
         this.context.stroke();
-
-        this.context.font = '10px Arial';
-        this.context.fillText(`${tick.position}`, x0 + tickLength + 2, y - 10);
+        // Looks bad:
+        // this.context.font = '10px Arial';
+        // this.context.fillText(`${tick.position}`, x0 + tickLength + 2, y - 10);
       }
     });
+  }
+
+  private drawMouseReticule(rangeX: Range, rangeY: Range) {
+    if (this.mousePosition == null) {
+      this.overlayDiv.innerHTML = '';
+      return;
+    }
+    const { x: dataX, y: dataY } = this.data;
+
+    const pixelsFromNormalized = this.getPixelFromNormalizedTransform();
+
+    // Find the data sample closest to the mouse:
+    var k = 0;
+    var dMin = Number.POSITIVE_INFINITY;
+    for (var i = 0; i < dataX.length; ++i) {
+      const p = pixelsFromNormalized.transform({
+        x: rangeX.convertFrom(dataX[i]),
+        y: rangeY.convertFrom(dataY[i])
+      });
+      const d = Math.sqrt(
+        Math.pow(p.x - this.mousePosition.x, 2) + Math.pow(p.y - this.mousePosition.y, 2)
+      );
+      if (d < dMin) {
+        dMin = d;
+        k = i;
+      }
+    }
+
+    const pt: Point = { x: dataX[k], y: dataY[k] };
+    const ptPixels = pixelsFromNormalized.transform({
+      x: rangeX.convertFrom(pt.x),
+      y: rangeY.convertFrom(pt.y)
+    });
+
+    this.context.save();
+    this.context.strokeStyle = '#172554';
+
+    // vertical line:
+    this.context.lineWidth = 1.5;
+    this.context.setLineDash([5, 5]);
+    this.context.beginPath();
+    this.context.moveTo(ptPixels.x, this.canvas.height);
+    this.context.lineTo(ptPixels.x, ptPixels.y);
+    this.context.stroke();
+
+    this.context.beginPath();
+    this.context.moveTo(0, ptPixels.y);
+    this.context.lineTo(ptPixels.x, ptPixels.y);
+    this.context.stroke();
+    this.context.restore();
+
+    // update the overlay
+    this.overlayDiv.innerHTML = `x = ${pt.x}, y = ${pt.y.toPrecision(4)}`;
+  }
+
+  private mouseLeave(event: MouseEvent) {
+    this.mousePosition = null;
+  }
+
+  private mouseMove(event: MouseEvent) {
+    this.mousePosition = { x: event.offsetX, y: event.offsetY };
   }
 }

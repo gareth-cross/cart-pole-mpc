@@ -4,7 +4,8 @@ import {
   Point,
   ScaleAndTranslate,
   SingleCartPoleState,
-  SingleCartPoleParams
+  SingleCartPoleParams,
+  indexOfSmallest
 } from './interfaces';
 
 export class MouseInteraction {
@@ -17,15 +18,6 @@ export class MouseInteraction {
     this.incidentAngle = incidentAngle;
     this.clicked = clicked;
   }
-}
-
-function indexOfSmallest<T>(a: Array<T>) {
-  console.assert(a.length > 0);
-  var lowest = 0;
-  for (var i = 1; i < a.length; i++) {
-    if (a[i] < a[lowest]) lowest = i;
-  }
-  return lowest;
 }
 
 // Handle user interaction with the cart-pole system via mouse events.
