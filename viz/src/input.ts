@@ -30,7 +30,8 @@ function indexOfSmallest<T>(a: Array<T>) {
 // Handle user interaction with the cart-pole system via mouse events.
 export class MouseHandler {
   private mousePosition: Point | null = null;
-  private isClicking: boolean = false;
+  private hasPendingClick: boolean = false;
+  private activeIndex: number | null = null;
 
   constructor() {
     const canvas: HTMLCanvasElement = document.getElementById('canvas') as HTMLCanvasElement;
@@ -66,32 +67,47 @@ export class MouseHandler {
     // Figure out which mass the mouse is closest to:
     const locations = massLocationsFromState(state, dynamicsParams);
     const scaledLocations = locations.map((p) => pixelsFromMetric.transform(p));
-    const distances = scaledLocations.map((p) =>
-      Math.sqrt(Math.pow(mx - p.x, 2) + Math.pow(my - p.y, 2))
-    );
-    const minIndex = indexOfSmallest(distances);
+    const selectedIndex = this.maybeUpdateSelection(scaledLocations);
 
-    const minDistanceToInteract = Number.POSITIVE_INFINITY; //  Pixels
-    if (distances[minIndex] < minDistanceToInteract) {
-      // Convert to an incident angle.
-      const angle = Math.atan2(my - scaledLocations[minIndex].y, mx - scaledLocations[minIndex].x);
-      return new MouseInteraction(minIndex, angle, this.isClicking);
+    // Convert to an incident angle.
+    const angle = Math.atan2(
+      my - scaledLocations[selectedIndex].y,
+      mx - scaledLocations[selectedIndex].x
+    );
+    return new MouseInteraction(selectedIndex, angle, selectedIndex === this.activeIndex);
+  }
+
+  private maybeUpdateSelection(scaledLocations: Array<Point>) {
+    if (this.activeIndex == null) {
+      // No point is active, figure out the closest one:
+      const { x: mx, y: my } = this.mousePosition;
+      const distances = scaledLocations.map((p) =>
+        Math.sqrt(Math.pow(mx - p.x, 2) + Math.pow(my - p.y, 2))
+      );
+      const minIndex = indexOfSmallest(distances);
+      if (this.hasPendingClick) {
+        this.activeIndex = minIndex;
+      }
+      return minIndex;
     }
-    return null;
+    return this.activeIndex;
   }
 
   private mouseEnter(event: MouseEvent) {}
   private mouseLeave(event: MouseEvent) {
     this.mousePosition = null;
-    this.isClicking = false;
+    this.hasPendingClick = false;
+    this.activeIndex = null;
   }
   private mouseMove(event: MouseEvent) {
     this.mousePosition = { x: event.offsetX, y: event.offsetY };
   }
   private mouseDown(event: MouseEvent) {
-    this.isClicking = true;
+    this.mousePosition = { x: event.offsetX, y: event.offsetY };
+    this.hasPendingClick = true;
   }
   private mouseUp(event: MouseEvent) {
-    this.isClicking = false;
+    this.hasPendingClick = false;
+    this.activeIndex = null;
   }
 }

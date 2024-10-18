@@ -181,7 +181,7 @@ export class Renderer {
 
     // Draw the point mass:
     const pointRadiusPixels = pixelFromMetric.sx * 0.03;
-    this.context.fillStyle = '#991b1b';
+    this.context.fillStyle = '#C3391B';
     this.context.beginPath();
     this.context.arc(massScaled.x, massScaled.y, pointRadiusPixels, 0, 2 * Math.PI, false);
     this.context.fill();
