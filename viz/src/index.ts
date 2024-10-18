@@ -55,7 +55,9 @@ class Application {
       g: 9.81,
       mu_b: 0.05,
       v_mu_b: 0.1,
-      c_d_1: 0.1
+      c_d_1: 0.02,
+      x_s: 0.8,
+      k_s: 100.0
     };
     this.simulator = new this.wasm.Simulator(this.dynamicsParams);
 

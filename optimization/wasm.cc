@@ -17,7 +17,8 @@ namespace pendulum {
 using json = nlohmann::json;
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SingleCartPoleState, b_x, th_1, th_1_dot, b_x_dot);
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SingleCartPoleParams, m_b, m_1, l_1, g, mu_b, v_mu_b, c_d_1);
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SingleCartPoleParams, m_b, m_1, l_1, g, mu_b, v_mu_b, c_d_1, x_s,
+                                   k_s);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Vector2, x, y);
 
 // Encode to JSON, then decode in JavaScript.

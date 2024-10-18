@@ -15,6 +15,8 @@ export interface SingleCartPoleParams {
   mu_b: number;
   v_mu_b: number;
   c_d_1: number;
+  x_s: number;
+  k_s: number;
 }
 
 export interface Point {
