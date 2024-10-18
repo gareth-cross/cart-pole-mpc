@@ -1,3 +1,4 @@
+// Copyright 2024 Gareth Cross.
 import {
   massLocationsFromState,
   Point,
