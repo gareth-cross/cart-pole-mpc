@@ -14,11 +14,12 @@ import { Renderer } from './renderer';
 import { Plotter } from './plotter';
 import { TicToc } from './tic_toc';
 import { MouseHandler, MouseInteraction } from './input';
-import { Point, SingleCartPoleState, SingleCartPoleParams } from './interfaces';
+import { Point, SingleCartPoleState, SingleCartPoleParams, OptimizationParams } from './interfaces';
 
 class Application {
   private wasm: MainModule;
   private dynamicsParams: SingleCartPoleParams;
+  private optimizationParams: OptimizationParams;
   private simulator: Simulator;
   private optimizer: Optimization;
   private renderer: Renderer;
@@ -62,12 +63,8 @@ class Application {
     this.simulator = new this.wasm.Simulator(this.dynamicsParams);
 
     // Some params that we fix are configured up front:
-    const params = new this.wasm.OptimizationParams();
-    params.max_iterations = 8;
-    params.window_length = 40;
-
-    this.optimizer = new this.wasm.Optimization(params);
-    params.delete();
+    this.optimizationParams = this.wasm.getDefaultOptimizationParams() as OptimizationParams;
+    this.optimizer = new this.wasm.Optimization(this.optimizationParams);
 
     this.externalForces = [
       { x: 0, y: 0 },

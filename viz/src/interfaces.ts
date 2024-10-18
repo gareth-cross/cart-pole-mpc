@@ -1,5 +1,6 @@
-// Copyright 2024 Gareth Cross.
+// Copyright (c) 2024 Gareth Cross.
 
+// See structs.hpp for docs.
 export interface SingleCartPoleState {
   b_x: number;
   th_1: number;
@@ -7,6 +8,7 @@ export interface SingleCartPoleState {
   th_1_dot: number;
 }
 
+// See structs.hpp for docs.
 export interface SingleCartPoleParams {
   m_b: number;
   m_1: number;
@@ -22,6 +24,22 @@ export interface SingleCartPoleParams {
 export interface Point {
   x: number;
   y: number;
+}
+
+// See optimization.hpp for docs.
+export interface OptimizationParams {
+  control_dt: number;
+  window_length: number;
+  state_spacing: number;
+  max_iterations: number;
+  relative_exit_tol: number;
+  absolute_first_derivative_tol: number;
+  equality_penalty_initial: number;
+  u_guess_sinusoid_amplitude: number;
+  u_penalty: number;
+  u_derivative_penalty: number;
+  b_x_final_penalty: number;
+  terminal_angle_constraint_enabled: number;
 }
 
 // A translation and scaling operation.
