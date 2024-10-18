@@ -1,3 +1,4 @@
+// Copyright 2024 Gareth Cross.
 import './styles.css';
 
 import { saveAs } from 'file-saver';
@@ -76,15 +77,15 @@ class Application {
     this.mouseHandler = new MouseHandler();
 
     this.controlPlotter = new Plotter('controlPlot', {
-      yaxis_limit_lower: -30.0,
-      yaxis_limit_upper: 30.0,
-      grid_x: {
-        major_interval: 0.1, //  Seconds.
-        num_minor_ticks: 1
+      yAxisLimitLower: -50.0,
+      yAxisLimitUpper: 50.0,
+      gridX: {
+        majorInterval: 0.1, //  Seconds.
+        numMinorTicks: 1
       },
-      grid_y: {
-        major_interval: 10.0, //  Newtons.
-        num_minor_ticks: 1
+      gridY: {
+        majorInterval: 10.0, //  Newtons.
+        numMinorTicks: 1
       }
     });
 

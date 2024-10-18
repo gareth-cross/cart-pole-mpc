@@ -1,3 +1,5 @@
+// Copyright 2024 Gareth Cross.
+
 export interface SingleCartPoleState {
   b_x: number;
   th_1: number;
@@ -38,8 +40,16 @@ export class ScaleAndTranslate {
     return new ScaleAndTranslate(1 / this.sx, 1 / this.sy, -this.tx / this.sx, -this.ty / this.sy);
   }
 
+  public transformX(x: number): number {
+    return this.sx * x + this.tx;
+  }
+
+  public transformY(y: number): number {
+    return this.sy * y + this.ty;
+  }
+
   public transform(p: Point): Point {
-    return { x: this.sx * p.x + this.tx, y: this.sy * p.y + this.ty };
+    return { x: this.transformX(p.x), y: this.transformY(p.y) };
   }
 }
 
