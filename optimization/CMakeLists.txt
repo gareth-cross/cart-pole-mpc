@@ -2,7 +2,6 @@
 set(MODULE_NAME "optimization")
 add_library(
   ${MODULE_NAME} STATIC
-  double_pendulum_dynamics.hpp
   integration.hpp
   key.hpp
   optimization.cc
