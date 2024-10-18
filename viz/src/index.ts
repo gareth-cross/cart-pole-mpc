@@ -137,12 +137,18 @@ class Application {
       saveAs(blob, 'log.json');
     });
 
-    const saveTracesButton = document.getElementById('saveTracesButton') as HTMLButtonElement;
-    saveTracesButton.addEventListener('click', () => {
-      const traces = this.wasm.getTraces();
-      const blob = new Blob([traces], { type: 'text/plain;charset=utf-8' });
-      saveAs(blob, 'traces.json');
-    });
+    // Show the "Save traces" button in development mode.
+    if (this.wasm.isTracingEnabled()) {
+      const saveTracesButton = document.getElementById('saveTracesButton') as HTMLButtonElement;
+      saveTracesButton.parentElement.classList.remove('invisible');
+      saveTracesButton.addEventListener('click', () => {
+        const traces = this.wasm.getTraces();
+        if (traces.length > 0) {
+          const blob = new Blob([traces], { type: 'text/plain;charset=utf-8' });
+          saveAs(blob, 'traces.json');
+        }
+      });
+    }
   }
 
   private animationCallback(timestamp: DOMHighResTimeStamp) {
