@@ -17,6 +17,8 @@ class SingleCartPoleParams:
     mu_b: type_annotations.FloatScalar
     v_mu_b: type_annotations.FloatScalar
     c_d_1: type_annotations.FloatScalar
+    x_s: type_annotations.FloatScalar
+    k_s: type_annotations.FloatScalar
 
 
 @dataclasses.dataclass
@@ -183,12 +185,14 @@ def get_single_pendulum_dynamics() -> T.Callable:
     u_b = sym.symbols("u_b", real=True)
 
     # Friction coefficient on the base, and the cutoff velocity of the smooth Coulomb model.
-    mu_b = sym.symbols("mu_b", real=True)
-    v_mu_b = sym.symbols("v_mu_b", real=True)
+    mu_b, v_mu_b = sym.symbols("mu_b, v_mu_b", real=True)
 
     # Air drag coefficient on the mass:
     # This is summarized as: rho * C_d * A, where rho is air density, and A is cross-sectional area.
     c_d_1 = sym.symbols("c_d_1", real=True)
+
+    # Position and spring coefficient on the boundary of the workspace.
+    x_s, k_s = sym.symbols("x_s, k_s", real=True)
 
     # Positions of base, and pole mounted weight.
     b = sym.vector(b_x, 0)
@@ -232,7 +236,7 @@ def get_single_pendulum_dynamics() -> T.Callable:
 
     # Dissipative force due to friction on the base.
     F_friction_base = (
-        mu_b * (m_1 + m_b) * g * sym.tanh(b_x_dot / sym.max(v_mu_b, 1.0e-6))
+        -mu_b * (m_1 + m_b) * g * sym.tanh(b_x_dot / sym.max(v_mu_b, 1.0e-6))
     )
 
     # Dissipative _power_ due to air drag on the pendulum mass.
@@ -243,13 +247,19 @@ def get_single_pendulum_dynamics() -> T.Callable:
         * sym.where(p_1_dot.squared_norm() > 0, p_1_dot.norm() ** 3, 0)
     )
 
+    # External force from the boundary "spring":
+    F_s_right = -k_s * sym.max(0, b_x - x_s)
+    F_s_left = k_s * sym.max(0, -x_s - b_x)
+
     # Form the Euler-Lagrange equations (each of these is equal to zero).
     # We add in our control input `u_b`, which is a non-conservative force.
     el_b = (
         (q_b.diff(t) - L.diff(b_x)).distribute()
         - u_b
         - Q_b
-        + F_friction_base
+        - F_friction_base
+        - F_s_right
+        - F_s_left
         + D_air_mass.subs(b_x_dot, alpha).diff(alpha).subs(alpha, b_x_dot)
     )
     el_th_1 = (
@@ -294,6 +304,8 @@ def get_single_pendulum_dynamics() -> T.Callable:
                     (mu_b, params.mu_b),
                     (v_mu_b, params.v_mu_b),
                     (c_d_1, params.c_d_1),
+                    (x_s, params.x_s),
+                    (k_s, params.k_s),
                 ]
             )
             .subs(vel_states)
