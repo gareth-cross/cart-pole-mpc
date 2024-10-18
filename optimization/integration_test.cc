@@ -46,27 +46,23 @@ TEST(IntegrationTest, TestDerivatives) {
   const Eigen::Matrix<double, 4, 1> x{1.2, 0.7, 0.4, -0.15};
   constexpr double u = 0.1;
   constexpr double dt = 0.01;
-  constexpr SingleCartPoleParams params{1.0, 0.1, 0.25, 9.81, 0.0, 0.1, 0.0};
+  constexpr SingleCartPoleParams params{1.0, 0.1, 0.25, 9.81, 0.0, 0.1, 0.0, 0.8, 10.0};
   const Eigen::Vector2d zero = Eigen::Vector2d::Zero();
 
   const auto [_, f_D_x, f_D_u] = runge_kutta_4th_order<4>(
       x, u, dt,
       [&](const Eigen::Matrix<double, 4, 1>& x_updated, const double u,
           Eigen::Matrix<double, 4, 4>& x_dot_D_x, Eigen::Matrix<double, 4, 1>& x_dot_D_u) {
-        Eigen::Matrix<double, 4, 1> x_dot;
-        gen::single_pendulum_dynamics(params, x_updated, u, zero, zero, x_dot, x_dot_D_x,
-                                      x_dot_D_u);
-        return x_dot;
+        return gen::single_pendulum_dynamics(params, x_updated, u, zero, zero, x_dot_D_x,
+                                             x_dot_D_u);
       });
 
   const auto f_D_x_numerical =
       numerical_jacobian(x, [&](const Eigen::Matrix<double, 4, 1>& x_perturb) {
         return runge_kutta_4th_order_no_jacobians<4>(
             x_perturb, u, dt, [&](const Eigen::Matrix<double, 4, 1>& x_updated, const double u) {
-              Eigen::Matrix<double, 4, 1> x_dot;
-              gen::single_pendulum_dynamics(params, x_updated, u, zero, zero, x_dot, nullptr,
-                                            nullptr);
-              return x_dot;
+              return gen::single_pendulum_dynamics(params, x_updated, u, zero, zero, nullptr,
+                                                   nullptr);
             });
       });
 
@@ -74,10 +70,8 @@ TEST(IntegrationTest, TestDerivatives) {
       Eigen::Matrix<double, 1, 1>{u}, [&](const Eigen::Matrix<double, 1, 1>& u_perturb) {
         return runge_kutta_4th_order_no_jacobians<4>(
             x, u_perturb[0], dt, [&](const Eigen::Matrix<double, 4, 1>& x_updated, const double u) {
-              Eigen::Matrix<double, 4, 1> x_dot;
-              gen::single_pendulum_dynamics(params, x_updated, u, zero, zero, x_dot, nullptr,
-                                            nullptr);
-              return x_dot;
+              return gen::single_pendulum_dynamics(params, x_updated, u, zero, zero, nullptr,
+                                                   nullptr);
             });
       });
 
@@ -90,7 +84,7 @@ TEST(IntegrationTest, TestFrictionDissipation) {
   const Eigen::Matrix<double, 4, 1> x0 = SingleCartPoleState(0.0, 0.0, 0.0, 0.0).ToVector();
   constexpr double u = 0.0;
   constexpr double dt = 0.01;
-  constexpr SingleCartPoleParams params{1.0, 0.5, 0.4, 9.81, 0.5, 0.1, 0.0};
+  constexpr SingleCartPoleParams params{1.0, 0.5, 0.4, 9.81, 0.5, 0.1, 0.0, 0.0, 0.0};
   const Eigen::Vector2d zero = Eigen::Vector2d::Zero();
   constexpr std::size_t num_iterations = 20000;
 
@@ -99,9 +93,7 @@ TEST(IntegrationTest, TestFrictionDissipation) {
   for (std::size_t i = 0; i < num_iterations; ++i) {
     x = runge_kutta_4th_order_no_jacobians<4>(
         x, u, dt, [&](const Eigen::Matrix<double, 4, 1>& x_updated, const double u) {
-          Eigen::Matrix<double, 4, 1> x_dot;
-          gen::single_pendulum_dynamics(params, x_updated, u, zero, zero, x_dot, nullptr, nullptr);
-          return x_dot;
+          return gen::single_pendulum_dynamics(params, x_updated, u, zero, zero, nullptr, nullptr);
         });
   }
 
@@ -114,7 +106,7 @@ TEST(IntegrationTest, TestDragDissipation) {
   const Eigen::Matrix<double, 4, 1> x0 = SingleCartPoleState(0.0, -M_PI, 0.0, 0.0).ToVector();
   constexpr double u = 0.0;
   constexpr double dt = 0.01;
-  constexpr SingleCartPoleParams params{0.8, 0.1, 0.4, 9.81, 0.01, 0.1, 5.0};
+  constexpr SingleCartPoleParams params{0.8, 0.1, 0.4, 9.81, 0.01, 0.1, 5.0, 0.0, 0.0};
   const Eigen::Vector2d zero = Eigen::Vector2d::Zero();
   constexpr std::size_t num_iterations = 10000;
 
@@ -123,9 +115,7 @@ TEST(IntegrationTest, TestDragDissipation) {
   for (std::size_t i = 0; i < num_iterations; ++i) {
     x = runge_kutta_4th_order_no_jacobians<4>(
         x, u, dt, [&](const Eigen::Matrix<double, 4, 1>& x_updated, const double u) {
-          Eigen::Matrix<double, 4, 1> x_dot;
-          gen::single_pendulum_dynamics(params, x_updated, u, zero, zero, x_dot, nullptr, nullptr);
-          return x_dot;
+          return gen::single_pendulum_dynamics(params, x_updated, u, zero, zero, nullptr, nullptr);
         });
   }
 
@@ -139,7 +129,7 @@ TEST(IntegrationTest, TestExternalForceSymmetry) {
   const Eigen::Matrix<double, 4, 1> x0 = SingleCartPoleState(0.0, -M_PI / 2, 0.0, 0.0).ToVector();
   constexpr double u = 0.0;
   constexpr double dt = 0.001;
-  constexpr SingleCartPoleParams params{1.0, 0.1, 0.25, 9.81, 0.1, 0.1, 0.0};
+  constexpr SingleCartPoleParams params{1.0, 0.1, 0.25, 9.81, 0.1, 0.1, 0.0, 0.0, 0.0};
 
   const Eigen::Vector2d zero = Eigen::Vector2d::Zero();
 
@@ -152,12 +142,10 @@ TEST(IntegrationTest, TestExternalForceSymmetry) {
   for (std::size_t i = 0; i < num_iterations; ++i) {
     x_left = runge_kutta_4th_order_no_jacobians<4>(
         x_left, u, dt, [&](const Eigen::Matrix<double, 4, 1>& x_updated, const double u) {
-          Eigen::Matrix<double, 4, 1> x_dot;
-          gen::single_pendulum_dynamics(
+          return gen::single_pendulum_dynamics(
               params, x_updated, u,
               i < force_duration ? Eigen::Vector2d{force_magnitude, 0.0} : Eigen::Vector2d::Zero(),
-              zero, x_dot, nullptr, nullptr);
-          return x_dot;
+              zero, nullptr, nullptr);
         });
   }
 
@@ -166,12 +154,10 @@ TEST(IntegrationTest, TestExternalForceSymmetry) {
   for (std::size_t i = 0; i < num_iterations; ++i) {
     x_right = runge_kutta_4th_order_no_jacobians<4>(
         x_right, u, dt, [&](const Eigen::Matrix<double, 4, 1>& x_updated, const double u) {
-          Eigen::Matrix<double, 4, 1> x_dot;
-          gen::single_pendulum_dynamics(
+          return gen::single_pendulum_dynamics(
               params, x_updated, u,
               i < force_duration ? Eigen::Vector2d{-force_magnitude, 0.0} : Eigen::Vector2d::Zero(),
-              zero, x_dot, nullptr, nullptr);
-          return x_dot;
+              zero, nullptr, nullptr);
         });
   }
 
