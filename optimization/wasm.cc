@@ -118,10 +118,23 @@ EMSCRIPTEN_BINDINGS(OptimizationWasm) {
   em::function(
       "getDefaultOptimizationParams", +[]() { return ObjectFromStruct(OptimizationParams{}); });
 
-#ifdef MINI_OPT_TRACING
   em::function(
-      "getTraces", +[]() { return mini_opt::trace_collector::get_instance()->get_trace_json(); });
+      "isTracingEnabled", +[]() {
+#ifdef MINI_OPT_TRACING
+        return true;
+#else
+    return false;
 #endif
+      });
+
+  em::function(
+      "getTraces", +[]() {
+#ifdef MINI_OPT_TRACING
+        return mini_opt::trace_collector::get_instance()->get_trace_json();
+#else
+    return std::string{};
+#endif
+      });
 
 #if defined(__has_feature)
 #if __has_feature(address_sanitizer)
