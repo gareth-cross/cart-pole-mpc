@@ -38,8 +38,6 @@
     "webpack-dev-server": "^5.1.0"
   },
   "dependencies": {
-    "@popperjs/core": "^2.11.8",
-    "file-saver": "^2.0.5",
-    "uplot": "^1.6.31"
+    "file-saver": "^2.0.5"
   }
 }

@@ -9,12 +9,10 @@ namespace pendulum {
 // Encapsulate the system state and provide interface to integrate it forward in time.
 class Simulator {
  public:
-  // Construct with parameters of the system.
-  explicit Simulator(const SingleCartPoleParams& params) noexcept : params_(params) {}
-
   // Step the simulator forward by the specified amount of time.
   // `u` is the control input.
-  void Step(double dt, double u, const Vector2& f_base, const Vector2& f_mass);
+  void Step(const SingleCartPoleParams& params, double dt, double u, const Vector2& f_base,
+            const Vector2& f_mass);
 
   // Get the state of the system.
   SingleCartPoleState GetState() const noexcept {
@@ -24,9 +22,9 @@ class Simulator {
   void SetState(const SingleCartPoleState& state) noexcept { state_ = state.ToVector(); }
 
  private:
-  void SubStep(double dt, double u, const Vector2& f_base, const Vector2& f_mass);
+  void SubStep(const SingleCartPoleParams& params, double dt, double u, const Vector2& f_base,
+               const Vector2& f_mass);
 
-  SingleCartPoleParams params_;
   Eigen::Vector4d state_{0.0, -M_PI / 2, 0.0, 0.0};
 };
 

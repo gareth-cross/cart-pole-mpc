@@ -60,7 +60,7 @@ class Application {
       x_s: 0.8,
       k_s: 100.0
     };
-    this.simulator = new this.wasm.Simulator(this.dynamicsParams);
+    this.simulator = new this.wasm.Simulator();
 
     // Some params that we fix are configured up front:
     this.optimizationParams = this.wasm.getDefaultOptimizationParams() as OptimizationParams;
@@ -104,8 +104,34 @@ class Application {
     window.requestAnimationFrame((ts) => this.animationCallback(ts));
   }
 
-  // TODO: In principle we should clean up these connections, but the app never gets torn
-  // down until page reload.
+  // TODO: Could maybe use React for this, although that might be a bit heavy-handed.
+  // For now I'll just do a bit of manual state management with addEventListener.
+  private connectSliderElement(
+    inputId: string,
+    min: number,
+    max: number,
+    step: number,
+    initialValue: number,
+    setter: (value: number) => void,
+    units?: string
+  ) {
+    const slider = document.getElementById(inputId) as HTMLInputElement;
+    const output = document.getElementById(inputId + 'Output');
+    slider.min = min.toString();
+    slider.max = max.toString();
+    slider.step = step.toString();
+    slider.value = initialValue.toString();
+    output.innerHTML = initialValue.toFixed(2);
+    if (units) {
+      output.innerHTML += `${units}`;
+    }
+    slider.addEventListener('input', () => {
+      const value = Math.min(Math.max(parseFloat(slider.value), min), max);
+      setter(value);
+      output.innerHTML = value.toFixed(2) + (units ? `${units}` : '');
+    });
+  }
+
   private connectUi() {
     // Connect buttons to the UI:
     const controllerCheckbox = document.getElementById(
@@ -119,14 +145,49 @@ class Application {
       this.controlEnabled = controllerCheckbox.checked;
     });
 
-    const simRateSlider = document.getElementById('simRateSlider') as HTMLInputElement;
-    simRateSlider.addEventListener('change', () => {
-      const minSimRate = 0.0;
-      const sliderMax = 100.0;
-      const normalizedSliderValue =
-        Math.min(Math.max(parseInt(simRateSlider.value), 0.0), sliderMax) / sliderMax;
-      this.simRate = minSimRate + (1.0 - minSimRate) * normalizedSliderValue;
-    });
+    this.connectSliderElement(
+      'simRateSlider',
+      0.0,
+      1.0,
+      0.01,
+      this.simRate,
+      (value) => (this.simRate = value)
+    );
+    this.connectSliderElement(
+      'baseMassSlider',
+      0.1,
+      2.0,
+      0.01,
+      this.dynamicsParams.m_b,
+      (value) => (this.dynamicsParams.m_b = value),
+      'kg'
+    );
+    this.connectSliderElement(
+      'poleMassSlider',
+      0.1,
+      1.0,
+      0.01,
+      this.dynamicsParams.m_1,
+      (value) => (this.dynamicsParams.m_1 = value),
+      'kg'
+    );
+    this.connectSliderElement(
+      'armLengthSlider',
+      0.05,
+      0.5,
+      0.01,
+      this.dynamicsParams.l_1,
+      (value) => (this.dynamicsParams.l_1 = value),
+      'm'
+    );
+    this.connectSliderElement(
+      'cartFrictionSlider',
+      0.01,
+      0.5,
+      0.01,
+      this.dynamicsParams.mu_b,
+      (value) => (this.dynamicsParams.mu_b = value)
+    );
 
     const saveLogButton = document.getElementById('saveLogButton') as HTMLButtonElement;
     saveLogButton.addEventListener('click', () => {
@@ -214,7 +275,12 @@ class Application {
     }
 
     // Step the sim forward. We only apply the control if the checkbox is checked.
-    this.simulator.step(dt, this.controlEnabled ? outputs.getControl(0) : 0.0, this.externalForces);
+    this.simulator.step(
+      this.dynamicsParams,
+      dt,
+      this.controlEnabled ? outputs.getControl(0) : 0.0,
+      this.externalForces
+    );
 
     this.updatePlots(outputs);
 
