@@ -67,14 +67,14 @@ using namespace pendulum;
 
 EMSCRIPTEN_BINDINGS(OptimizationWasm) {
   em::class_<Simulator>("Simulator")
-      .constructor(
-          +[](em::val params) { return Simulator(StructFromObject<SingleCartPoleParams>(params)); })
+      .constructor<>()
       .function(
           "step",
-          +[](Simulator& sim, double dt, double u, em::val f_external) {
+          +[](Simulator& sim, em::val params, double dt, double u, em::val f_external) {
             const auto external_forces = StructFromObject<std::vector<Vector2>>(f_external);
             F_ASSERT_EQ(2, external_forces.size());
-            return sim.Step(dt, u, external_forces[0], external_forces[1]);
+            return sim.Step(StructFromObject<SingleCartPoleParams>(params), dt, u,
+                            external_forces[0], external_forces[1]);
           })
       .function(
           "getState", +[](const Simulator& sim) { return ObjectFromStruct(sim.GetState()); })

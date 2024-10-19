@@ -5,10 +5,16 @@
         "noImplicitAny": true,
         "module": "es6",
         "target": "ES6",
-        "jsx": "react",
+        "jsx": "react-jsx",
         "allowJs": true,
         "moduleResolution": "node",
-        "esModuleInterop": true
+        "esModuleInterop": true,
+        "jsxImportSource": "react",
+        "noFallthroughCasesInSwitch": true,
+        "resolveJsonModule": true,
+        "skipLibCheck": true,
+        "strict": true,
+        "strictNullChecks": false
     },
     "exclude": ["node_modules", "**/.vscode/"]
 }

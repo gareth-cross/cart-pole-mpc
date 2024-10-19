@@ -16,29 +16,95 @@
         <div class="rounded-xl bg-slate-800 border-solid border-2 border-sky-500 shadow-inner">
           <canvas id="canvas" style="width: 100%; height: 320px"> </canvas>
         </div>
-        <div class="relative bg-slate-800 rounded-xl overflow-auto p-8">
-          <div class="grid grid-rows-3">
-            <div>
-              <label class="text-white font-semibold">
-                <input
-                  id="enableControllerCheckbox"
-                  type="checkbox"
-                  class="accent-green-500"
-                  checked
-                />
-                Enable controller
-              </label>
+        <div class="relative bg-slate-800 rounded-xl overflow-auto p-6">
+          <div class="grid auto-rows-max gap-y-3">
+            <!-- Toggle switch on the controller. -->
+            <div class="grid grid-cols-2">
+              <label for="enableControllerCheckbox" class="text-white text-right mr-4"
+                >Toggle controller:</label
+              >
+              <input
+                id="enableControllerCheckbox"
+                type="checkbox"
+                class="accent-green-500"
+                checked
+              />
             </div>
-            <div>
-              <p class="text-white">Sim rate:</p>
-              <input type="range" min="0" max="100" value="100" class="slider" id="simRateSlider" />
+            <!-- Simulation rate -->
+            <div class="grid grid-cols-2">
+              <label for="simRateSlider" class="text-white text-right mr-4">Sim rate:</label>
+              <div class="flex">
+                <input type="range" class="slider mr-4 w-3/4" id="simRateSlider" />
+                <output
+                  for="simRateSlider"
+                  id="simRateSliderOutput"
+                  class="text-white text-center w-1/4"
+                ></output>
+              </div>
             </div>
-            <div class="mt-2">
-              <button id="saveLogButton" type="button" class="button-30">Save Log</button>
+            <!-- Cart mass: -->
+            <div class="grid grid-cols-2">
+              <label for="baseMassSlider" class="text-white text-right mr-4"
+                >Cart mass (m<sub>b</sub>):</label
+              >
+              <div class="flex">
+                <input type="range" class="slider mr-4 w-3/4" id="baseMassSlider" />
+                <output
+                  for="baseMassSlider"
+                  id="baseMassSliderOutput"
+                  class="text-white text-center w-1/4"
+                ></output>
+              </div>
             </div>
-            <div class="mt-2 invisible">
-              <button id="saveTracesButton" type="button" class="button-30">Save Traces</button>
+            <!-- Pole/suspended mass:  -->
+            <div class="grid grid-cols-2">
+              <label for="poleMassSlider" class="text-white text-right mr-4"
+                >Pole mass (m<sub>1</sub>):</label
+              >
+              <div class="flex">
+                <input type="range" class="slider mr-4 w-3/4" id="poleMassSlider" />
+                <output
+                  for="poleMassSlider"
+                  id="poleMassSliderOutput"
+                  class="text-white text-center w-1/4"
+                ></output>
+              </div>
             </div>
+            <!-- Length of arm: -->
+            <div class="grid grid-cols-2">
+              <label for="armLengthSlider" class="text-white text-right mr-4"
+                >Arm length (l<sub>1</sub>):</label
+              >
+              <div class="flex">
+                <input type="range" class="slider mr-4 w-3/4" id="armLengthSlider" />
+                <output
+                  for="armLengthSlider"
+                  id="armLengthSliderOutput"
+                  class="text-white text-center w-1/4"
+                ></output>
+              </div>
+            </div>
+            <!-- Cart friction coeff -->
+            <div class="grid grid-cols-2">
+              <label for="cartFrictionSlider" class="text-white text-right mr-4"
+                >Cart friction (μ):</label
+              >
+              <div class="flex">
+                <input type="range" class="slider mr-4 w-3/4" id="cartFrictionSlider" />
+                <output
+                  for="cartFrictionSlider"
+                  id="cartFrictionSliderOutput"
+                  class="text-white text-center w-1/4"
+                ></output>
+              </div>
+            </div>
+            <!--  -->
+          </div>
+          <div class="grid grid-cols-2 mt-8">
+            <button id="saveTracesButton" type="button" class="button-30 invisible">
+              Save Traces
+            </button>
+            <button id="saveLogButton" type="button" class="button-30">Save Log</button>
           </div>
         </div>
       </div>
