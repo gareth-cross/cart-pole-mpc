@@ -1,7 +1,7 @@
 // Copyright 2024 Gareth Cross.
 import { ScaleAndTranslate, Point } from './interfaces';
 
-class Range {
+export class Range {
   public min: number;
   public max: number;
 
@@ -20,15 +20,13 @@ class Range {
 }
 
 export interface GridTickConfig {
-  majorInterval: number;
+  numMajorTicks: number;
   numMinorTicks: number;
 }
 
 // Parameters we can pass to `Plotter` to configure rendering.
 export interface PlotterConfig {
-  yAxisLimitLower?: number;
-  yAxisLimitUpper?: number;
-
+  limitsY: Range;
   // Spacing between grid-ticks on the x and y axes.
   gridX?: GridTickConfig;
   gridY?: GridTickConfig;
@@ -68,6 +66,7 @@ export class Plotter {
     this.overlayDiv = document.createElement('div') as HTMLDivElement;
     this.overlayDiv.style.position = 'absolute';
     this.overlayDiv.style.right = '10px';
+    this.overlayDiv.classList.add('text-slate-100');
     parent.appendChild(this.overlayDiv);
 
     this.config = config;
@@ -91,14 +90,9 @@ export class Plotter {
 
   private computeAxisBounds(): { x: Range; y: Range } {
     console.assert(this.data != null);
-    const { x: x, y: y } = this.data;
-
-    const yMin = this.config.yAxisLimitLower || Number.POSITIVE_INFINITY;
-    const yMax = this.config.yAxisLimitUpper || Number.NEGATIVE_INFINITY;
-
     return {
-      x: new Range(Math.min(...x), Math.max(...x)),
-      y: new Range(yMin, yMax) //new Range(Math.min(Math.min(...y), y_min_bound), Math.max(Math.max(...y), y_max_bound))
+      x: new Range(Math.min(...this.data.x), Math.max(...this.data.x)),
+      y: this.config.limitsY
     };
   }
 
@@ -112,8 +106,6 @@ export class Plotter {
   public draw() {
     const [ctxWidth, ctxHeight] = [this.canvas.width, this.canvas.height];
     this.context.clearRect(0, 0, ctxWidth, ctxHeight);
-    this.context.fillStyle = '#E6ECF6';
-    this.context.fillRect(0, 0, ctxWidth, ctxHeight);
 
     if (this.data == null) {
       return;
@@ -127,7 +119,7 @@ export class Plotter {
     this.drawGrid(ticksX, ticksY, rangeX, rangeY);
 
     // Draw axes w/ tick marks.
-    this.drawAxes(ticksX, ticksY, rangeX, rangeY);
+    this.drawAxes(ticksX, rangeX, rangeY);
 
     // Draw some data:
     const { x: xData, y: yData } = this.data;
@@ -169,10 +161,11 @@ export class Plotter {
       return result;
     }
 
-    const { majorInterval: major, numMinorTicks: numMinorTicks } = config;
-    console.assert(numMinorTicks >= 0 && major > 0, `Invalid grid params: ${this.config.gridX}`);
+    const { numMajorTicks: numMajorTicks, numMinorTicks: numMinorTicks } = config;
+    const intervalWidth = (range.max - range.min) / (numMajorTicks + 1);
 
-    for (var majorVal = range.min; majorVal < range.max; majorVal += major) {
+    for (var i = 0; i < numMajorTicks; ++i) {
+      const majorVal = (i + 1) * intervalWidth + range.min;
       if (majorVal != range.min) {
         // Bit of a kludge, but don't push back the first major tick mark. The axis renderer will
         // draw on top of it anyways.
@@ -181,7 +174,7 @@ export class Plotter {
 
       if (numMinorTicks > 0) {
         // Compute how much space between each tick.
-        const spacing = major / (numMinorTicks + 1);
+        const spacing = intervalWidth / (numMinorTicks + 1);
         for (var i = 0; i < numMinorTicks; ++i) {
           result.push({ position: (i + 1) * spacing + majorVal, major: false });
         }
@@ -195,17 +188,26 @@ export class Plotter {
     this.context.save();
     this.context.lineCap = 'round';
     this.context.lineJoin = 'round';
-    this.context.strokeStyle = '#737373';
+
+    const gradient = this.context.createLinearGradient(
+      this.canvas.width / 2,
+      0,
+      this.canvas.width / 2,
+      this.canvas.height
+    );
+    gradient.addColorStop(0, 'rgba(148, 163, 184, 0.3)');
+    gradient.addColorStop(1, 'rgba(148, 163, 184, 0.6)');
+
+    this.context.strokeStyle = gradient;
 
     const pixelsFromNorm = this.getPixelFromNormalizedTransform();
 
     ticksX.forEach((mark) => {
       const { position: x, major: isMajor } = mark;
+      this.context.lineWidth = 0.25;
       if (isMajor) {
-        this.context.lineWidth = 0.5;
         this.context.setLineDash([]);
       } else {
-        this.context.lineWidth = 0.25;
         this.context.setLineDash([5, 5]);
       }
       const start = pixelsFromNorm.transform({ x: rangeX.convertFrom(x), y: 0 });
@@ -218,11 +220,10 @@ export class Plotter {
 
     ticksY.forEach((mark) => {
       const { position: y, major: isMajor } = mark;
+      this.context.lineWidth = 0.25;
       if (isMajor) {
-        this.context.lineWidth = 0.5;
         this.context.setLineDash([]);
       } else {
-        this.context.lineWidth = 0.25;
         this.context.setLineDash([5, 5]);
       }
       const start = pixelsFromNorm.transform({ x: 0, y: rangeY.convertFrom(y) });
@@ -235,23 +236,15 @@ export class Plotter {
     this.context.restore();
   }
 
-  private drawAxes(ticksX: Array<TickMark>, ticksY: Array<TickMark>, rangeX: Range, rangeY: Range) {
+  private drawAxes(ticksX: Array<TickMark>, rangeX: Range, rangeY: Range) {
     const pixelsFromNorm = this.getPixelFromNormalizedTransform();
-
-    const { x: x0, y: y0 } = pixelsFromNorm.transform({
-      x: rangeX.convertFrom(0),
-      y: rangeY.convertFrom(0)
-    });
+    const y0 = pixelsFromNorm.transformY(rangeY.convertFrom(0));
 
     // First we draw lines for the axes:
-    this.context.strokeStyle = '#171717';
-    this.context.fillStyle = '#171717';
+    this.context.strokeStyle = '#e2e8f0';
+    this.context.fillStyle = '#e2e8f0';
     this.context.lineWidth = 2;
     this.context.lineCap = 'round';
-    this.context.beginPath();
-    this.context.moveTo(Math.max(x0, 1), 0);
-    this.context.lineTo(Math.max(x0, 1), this.canvas.height);
-    this.context.stroke();
 
     this.context.beginPath();
     this.context.moveTo(0, Math.max(y0, 1));
@@ -267,20 +260,6 @@ export class Plotter {
         this.context.moveTo(x, y0 + tickLength);
         this.context.lineTo(x, y0 - tickLength);
         this.context.stroke();
-      }
-    });
-
-    ticksY.forEach((tick) => {
-      if (tick.major) {
-        const y = pixelsFromNorm.transformY(rangeY.convertFrom(tick.position));
-
-        this.context.beginPath();
-        this.context.moveTo(x0 + tickLength, y);
-        this.context.lineTo(x0 - tickLength, y);
-        this.context.stroke();
-        // Looks bad:
-        // this.context.font = '10px Arial';
-        // this.context.fillText(`${tick.position}`, x0 + tickLength + 2, y - 10);
       }
     });
   }
@@ -318,11 +297,11 @@ export class Plotter {
     });
 
     this.context.save();
-    this.context.strokeStyle = '#172554';
+    this.context.strokeStyle = '#FBA108';
 
     // vertical line:
-    this.context.lineWidth = 1.5;
-    this.context.setLineDash([5, 5]);
+    this.context.lineWidth = 2.0;
+    this.context.setLineDash([5, 10]);
     this.context.beginPath();
     this.context.moveTo(ptPixels.x, this.canvas.height);
     this.context.lineTo(ptPixels.x, ptPixels.y);
@@ -335,7 +314,7 @@ export class Plotter {
     this.context.restore();
 
     // update the overlay
-    this.overlayDiv.innerHTML = `x = ${pt.x}, y = ${pt.y.toPrecision(4)}`;
+    this.overlayDiv.innerHTML = `x = ${pt.x.toPrecision(3)}, y = ${pt.y.toPrecision(4)}`;
   }
 
   private mouseLeave(event: MouseEvent) {

@@ -12,11 +12,15 @@
   <body id="body" class="flex flex-col justify-left m-4">
     <h1 class="text-4xl text-white pb-4">Viz</h1>
     <div class="grid grid-cols-2 gap-4 max-w-screen-lg">
+      <!-- First column -->
       <div class="flex flex-col space-y-2">
-        <div class="rounded-xl bg-slate-800 border-solid border-2 border-sky-500 shadow-inner">
-          <canvas id="canvas" style="width: 100%; height: 320px"> </canvas>
+        <!-- The main canvas where the sim is rendered. -->
+        <div
+          class="rounded-xl overflow-hidden bg-slate-800 border-solid border-2 border-sky-500 shadow-inner"
+        >
+          <canvas id="canvas"> </canvas>
         </div>
-        <div class="relative bg-slate-800 rounded-xl overflow-auto p-6">
+        <div class="rounded-xl bg-slate-800 overflow-auto p-6">
           <table id="controlTable" class="w-full border-collapse border-slate-500 text-slate-300">
             <tr>
               <td class="w-auto whitespace-nowrap font-semibold text-right py-2 pr-4">
@@ -156,7 +160,6 @@
             </tr>
             -->
           </table>
-
           <div class="grid grid-cols-2 mt-4">
             <button id="saveTracesButton" type="button" class="button-38 invisible">
               Save Traces
@@ -166,9 +169,18 @@
         </div>
       </div>
       <div class="flex flex-col space-y-2" id="plotColumn">
-        <div id="controlPlot" class="relative"></div>
-        <div id="anglePlot" class="relative"></div>
-        <div id="speedPlot" class="relative"></div>
+        <div
+          id="controlPlot"
+          class="rounded-xl overflow-hidden bg-slate-800 border-solid border-2 border-sky-500 plot-canvas relative"
+        ></div>
+        <div
+          id="anglePlot"
+          class="rounded-xl overflow-hidden bg-slate-800 border-solid border-2 border-sky-500 plot-canvas relative"
+        ></div>
+        <div
+          id="speedPlot"
+          class="rounded-xl overflow-hidden bg-slate-800 border-solid border-2 border-sky-500 plot-canvas relative"
+        ></div>
       </div>
     </div>
   </body>
