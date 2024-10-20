@@ -19,23 +19,10 @@
         <div class="relative bg-slate-800 rounded-xl overflow-auto p-6">
           <table id="controlTable" class="w-full border-collapse border-slate-500 text-slate-300">
             <tr>
-              <td class="w-auto whitespace-nowrap text-right py-2 pr-4">Sim params:</td>
+              <td class="w-auto whitespace-nowrap font-semibold text-right py-2 pr-4">
+                Sim params:
+              </td>
               <td class="w-full"></td>
-            </tr>
-            <!-- Toggle switch on the controller. -->
-            <tr class="py-4">
-              <td class="w-auto whitespace-nowrap text-right py-2 pr-4">
-                <label for="enableControllerCheckbox">Toggle control:</label>
-              </td>
-              <td class="w-full">
-                <input
-                  id="enableControllerCheckbox"
-                  type="checkbox"
-                  class="accent-green-500"
-                  checked
-                />
-              </td>
-              <td class="w-auto whitespace-nowrap"></td>
             </tr>
             <!-- Simulation rate -->
             <tr>
@@ -119,9 +106,26 @@
             </tr>
             <!-- Controller params header. -->
             <tr>
-              <td class="w-auto whitespace-nowrap text-right py-8 pr-4">Control parameters:</td>
+              <td class="w-auto whitespace-nowrap font-semibold text-right py-4 pr-4">
+                Control parameters:
+              </td>
               <td class="w-full text-slate-500 text-center pr-4">
-                Changing these will reset the optimization.
+                <!-- Changing these will reset the optimization. -->
+              </td>
+              <td class="w-auto whitespace-nowrap"></td>
+            </tr>
+            <!-- Toggle switch on the controller. -->
+            <tr>
+              <td class="w-auto whitespace-nowrap text-right py-2 pr-4">
+                <label for="enableControllerCheckbox">Toggle control:</label>
+              </td>
+              <td class="w-full">
+                <input
+                  id="enableControllerCheckbox"
+                  type="checkbox"
+                  class="accent-green-500"
+                  checked
+                />
               </td>
               <td class="w-auto whitespace-nowrap"></td>
             </tr>
@@ -144,20 +148,6 @@
                 ></output>
               </td>
             </tr>
-            <tr>
-              <td class="w-auto whitespace-nowrap text-right py-2 pr-4">
-                <label for="multipleShootingCheckbox">Multiple shooting:</label>
-              </td>
-              <td class="w-full pr-4">
-                <input
-                  id="multipleShootingCheckbox"
-                  type="checkbox"
-                  class="accent-green-500"
-                  checked
-                />
-              </td>
-              <td class="w-auto whitespace-nowrap"></td>
-            </tr>
             <!--
             <tr>
               <td class="w-auto whitespace-nowrap text-right py-2 pr-4"></td>
@@ -177,6 +167,8 @@
       </div>
       <div class="flex flex-col space-y-2" id="plotColumn">
         <div id="controlPlot" class="relative"></div>
+        <div id="anglePlot" class="relative"></div>
+        <div id="speedPlot" class="relative"></div>
       </div>
     </div>
   </body>
