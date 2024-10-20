@@ -213,8 +213,7 @@ void Optimization::BuildProblem(const SingleCartPoleState& current_state,
         return delta;
       }));
 
-  if (params_.terminal_angle_constraint_enabled) {
-    problem_.equality_constraints.emplace_back(new mini_opt::Residual<1, 1>(
+  problem_.equality_constraints.emplace_back(new mini_opt::Residual<1, 1>(
         {MapKey<state_dim>(KeyType::THETA_1, num_states - 1, num_states)},
         [](const Eigen::Matrix<double, 1, 1>& vars,
            Eigen::Matrix<double, 1, 1>* J_out) -> Eigen::Matrix<double, 1, 1> {
@@ -223,7 +222,6 @@ void Optimization::BuildProblem(const SingleCartPoleState& current_state,
           }
           return Eigen::Matrix<double, 1, 1>{mod_pi(vars[0] - M_PI / 2)};
         }));
-  }
 
   // Equality constraint on the final state (velocities are zero).
   problem_.equality_constraints.emplace_back(new mini_opt::Residual<2, 2>(

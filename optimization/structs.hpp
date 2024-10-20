@@ -18,7 +18,7 @@ struct SingleCartPoleParams {
   double mu_b;
   // Cutoff velocity of the smoothed Coulomb model (m/s).
   double v_mu_b;
-  // Drag coefficient on the pole mass (W / (m/s)^3).
+  // Drag coefficient on the pole mass (W / (m/s)^3 --> N / (m/s)^2).
   double c_d_1;
   // Position of the bumper springs (meters).
   double x_s;

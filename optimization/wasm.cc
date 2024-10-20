@@ -23,8 +23,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Vector2, x, y);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(OptimizationParams, control_dt, window_length, state_spacing,
                                    max_iterations, relative_exit_tol, absolute_first_derivative_tol,
                                    equality_penalty_initial, u_guess_sinusoid_amplitude, u_penalty,
-                                   u_derivative_penalty, b_x_final_penalty,
-                                   terminal_angle_constraint_enabled);
+                                   u_derivative_penalty, b_x_final_penalty);
 
 // Encode to JSON, then decode in JavaScript.
 template <typename T>

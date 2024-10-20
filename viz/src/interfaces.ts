@@ -39,7 +39,6 @@ export interface OptimizationParams {
   u_penalty: number;
   u_derivative_penalty: number;
   b_x_final_penalty: number;
-  terminal_angle_constraint_enabled: number;
 }
 
 // A translation and scaling operation.
