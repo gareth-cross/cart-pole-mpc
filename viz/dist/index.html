@@ -17,94 +17,161 @@
           <canvas id="canvas" style="width: 100%; height: 320px"> </canvas>
         </div>
         <div class="relative bg-slate-800 rounded-xl overflow-auto p-6">
-          <div class="grid auto-rows-max gap-y-3">
+          <table id="controlTable" class="w-full border-collapse border-slate-500 text-slate-300">
+            <tr>
+              <td class="w-auto whitespace-nowrap text-right py-2 pr-4">Sim params:</td>
+              <td class="w-full"></td>
+            </tr>
             <!-- Toggle switch on the controller. -->
-            <div class="grid grid-cols-2">
-              <label for="enableControllerCheckbox" class="text-white text-right mr-4"
-                >Toggle controller:</label
-              >
-              <input
-                id="enableControllerCheckbox"
-                type="checkbox"
-                class="accent-green-500"
-                checked
-              />
-            </div>
+            <tr class="py-4">
+              <td class="w-auto whitespace-nowrap text-right py-2 pr-4">
+                <label for="enableControllerCheckbox">Toggle control:</label>
+              </td>
+              <td class="w-full">
+                <input
+                  id="enableControllerCheckbox"
+                  type="checkbox"
+                  class="accent-green-500"
+                  checked
+                />
+              </td>
+              <td class="w-auto whitespace-nowrap"></td>
+            </tr>
             <!-- Simulation rate -->
-            <div class="grid grid-cols-2">
-              <label for="simRateSlider" class="text-white text-right mr-4">Sim rate:</label>
-              <div class="flex">
-                <input type="range" class="slider mr-4 w-3/4" id="simRateSlider" />
-                <output
-                  for="simRateSlider"
-                  id="simRateSliderOutput"
-                  class="text-white text-center w-1/4"
-                ></output>
-              </div>
-            </div>
+            <tr>
+              <td class="w-auto whitespace-nowrap text-right py-2 px-4">
+                <label for="simRateSlider">Sim rate:</label>
+              </td>
+              <td class="w-full pr-4">
+                <input type="range" class="slider w-full" id="simRateSlider" />
+              </td>
+              <td class="w-auto whitespace-nowrap">
+                <output for="simRateSlider" id="simRateSliderOutput" class="text-center"></output>
+              </td>
+            </tr>
             <!-- Cart mass: -->
-            <div class="grid grid-cols-2">
-              <label for="baseMassSlider" class="text-white text-right mr-4"
-                >Cart mass (m<sub>b</sub>):</label
-              >
-              <div class="flex">
-                <input type="range" class="slider mr-4 w-3/4" id="baseMassSlider" />
-                <output
-                  for="baseMassSlider"
-                  id="baseMassSliderOutput"
-                  class="text-white text-center w-1/4"
-                ></output>
-              </div>
-            </div>
-            <!-- Pole/suspended mass:  -->
-            <div class="grid grid-cols-2">
-              <label for="poleMassSlider" class="text-white text-right mr-4"
-                >Pole mass (m<sub>1</sub>):</label
-              >
-              <div class="flex">
-                <input type="range" class="slider mr-4 w-3/4" id="poleMassSlider" />
-                <output
-                  for="poleMassSlider"
-                  id="poleMassSliderOutput"
-                  class="text-white text-center w-1/4"
-                ></output>
-              </div>
-            </div>
+            <tr>
+              <td class="w-auto whitespace-nowrap text-right py-2 pr-4">
+                <label for="baseMassSlider">Cart mass (m<sub>b</sub>):</label>
+              </td>
+              <td class="w-full pr-4">
+                <input type="range" class="slider w-full" id="baseMassSlider" />
+              </td>
+              <td class="w-auto whitespace-nowrap">
+                <output for="baseMassSlider" id="baseMassSliderOutput" class="text-center"></output>
+              </td>
+            </tr>
+            <!-- Pole/suspended mass -->
+            <tr>
+              <td class="w-auto whitespace-nowrap text-right py-2 pr-4">
+                <label for="poleMassSlider">Pole mass (m<sub>1</sub>):</label>
+              </td>
+              <td class="w-full pr-4">
+                <input type="range" class="slider w-full" id="poleMassSlider" />
+              </td>
+              <td class="w-auto whitespace-nowrap">
+                <output for="poleMassSlider" id="poleMassSliderOutput" class="text-center"></output>
+              </td>
+            </tr>
             <!-- Length of arm: -->
-            <div class="grid grid-cols-2">
-              <label for="armLengthSlider" class="text-white text-right mr-4"
-                >Arm length (l<sub>1</sub>):</label
-              >
-              <div class="flex">
-                <input type="range" class="slider mr-4 w-3/4" id="armLengthSlider" />
+            <tr>
+              <td class="w-auto whitespace-nowrap text-right py-2 pr-4">
+                <label for="armLengthSlider">Arm length (l<sub>1</sub>):</label>
+              </td>
+              <td class="w-full pr-4">
+                <input type="range" class="slider w-full" id="armLengthSlider" />
+              </td>
+              <td class="w-auto whitespace-nowrap">
                 <output
                   for="armLengthSlider"
                   id="armLengthSliderOutput"
-                  class="text-white text-center w-1/4"
+                  class="text-center"
                 ></output>
-              </div>
-            </div>
+              </td>
+            </tr>
             <!-- Cart friction coeff -->
-            <div class="grid grid-cols-2">
-              <label for="cartFrictionSlider" class="text-white text-right mr-4"
-                >Cart friction (μ):</label
-              >
-              <div class="flex">
-                <input type="range" class="slider mr-4 w-3/4" id="cartFrictionSlider" />
+            <tr>
+              <td class="w-auto whitespace-nowrap text-right py-2 pr-4">
+                <label for="cartFrictionSlider">Cart friction (μ):</label>
+              </td>
+              <td class="w-full pr-4">
+                <input type="range" class="slider w-full" id="cartFrictionSlider" />
+              </td>
+              <td class="w-auto whitespace-nowrap">
                 <output
                   for="cartFrictionSlider"
                   id="cartFrictionSliderOutput"
-                  class="text-white text-center w-1/4"
+                  class="text-center"
                 ></output>
-              </div>
-            </div>
-            <!--  -->
-          </div>
-          <div class="grid grid-cols-2 mt-8">
-            <button id="saveTracesButton" type="button" class="button-30 invisible">
+              </td>
+            </tr>
+            <!-- Mass drag coeff -->
+            <tr>
+              <td class="w-auto whitespace-nowrap text-right py-2 pr-4">
+                <label for="massDragSlider">Aero drag (c<sub>d1</sub>):</label>
+              </td>
+              <td class="w-full pr-4">
+                <input type="range" class="slider w-full" id="massDragSlider" />
+              </td>
+              <td class="w-auto whitespace-nowrap">
+                <output for="massDragSlider" id="massDragSliderOutput" class="text-center"></output>
+              </td>
+            </tr>
+            <!-- Controller params header. -->
+            <tr>
+              <td class="w-auto whitespace-nowrap text-right py-8 pr-4">Control parameters:</td>
+              <td class="w-full text-slate-500 text-center pr-4">
+                Changing these will reset the optimization.
+              </td>
+              <td class="w-auto whitespace-nowrap"></td>
+            </tr>
+            <!-- Cart Penalty -->
+            <tr>
+              <td class="w-auto whitespace-nowrap text-right py-2 pr-4">
+                <label for="cartPenaltySlider"
+                  >Cart position (b<sub>x</sub>)<br />
+                  penalty:</label
+                >
+              </td>
+              <td class="w-full pr-4">
+                <input type="range" class="slider w-full" id="cartPenaltySlider" />
+              </td>
+              <td class="w-auto whitespace-nowrap">
+                <output
+                  for="cartPenaltySlider"
+                  id="cartPenaltySliderOutput"
+                  class="text-center"
+                ></output>
+              </td>
+            </tr>
+            <tr>
+              <td class="w-auto whitespace-nowrap text-right py-2 pr-4">
+                <label for="multipleShootingCheckbox">Multiple shooting:</label>
+              </td>
+              <td class="w-full pr-4">
+                <input
+                  id="multipleShootingCheckbox"
+                  type="checkbox"
+                  class="accent-green-500"
+                  checked
+                />
+              </td>
+              <td class="w-auto whitespace-nowrap"></td>
+            </tr>
+            <!--
+            <tr>
+              <td class="w-auto whitespace-nowrap text-right py-2 pr-4"></td>
+              <td class="w-full pr-4"></td>
+              <td class="w-auto whitespace-nowrap"></td>
+            </tr>
+            -->
+          </table>
+
+          <div class="grid grid-cols-2 mt-4">
+            <button id="saveTracesButton" type="button" class="button-38 invisible">
               Save Traces
             </button>
-            <button id="saveLogButton" type="button" class="button-30">Save Log</button>
+            <button id="saveLogButton" type="button" class="button-38">Save Log</button>
           </div>
         </div>
       </div>

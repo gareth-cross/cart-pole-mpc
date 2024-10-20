@@ -41,9 +41,6 @@ struct OptimizationParams {
   double u_derivative_penalty{0.1};
   double b_x_final_penalty{150.0};
 
-  // Is the final equality constraint on theta enabled?
-  bool terminal_angle_constraint_enabled{true};
-
   // Number of states in the window.
   // Add one for the terminal state.
   constexpr std::size_t NumStates() const noexcept { return window_length / state_spacing + 1; }

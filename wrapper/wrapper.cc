@@ -65,9 +65,7 @@ void wrap_everything(nb::module_& m) {
       .def_rw("u_guess_sinusoid_amplitude", &OptimizationParams::u_guess_sinusoid_amplitude)
       .def_rw("u_penalty", &OptimizationParams::u_penalty)
       .def_rw("u_derivative_penalty", &OptimizationParams::u_derivative_penalty)
-      .def_rw("b_x_final_penalty", &OptimizationParams::b_x_final_penalty)
-      .def_rw("terminal_angle_constraint_enabled",
-              &OptimizationParams::terminal_angle_constraint_enabled);
+      .def_rw("b_x_final_penalty", &OptimizationParams::b_x_final_penalty);
 
   nb::class_<SingleCartPoleState>(m, "SingleCartPoleState")
       .def(nb::init<double, double, double, double>())

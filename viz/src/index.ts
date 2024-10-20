@@ -104,6 +104,13 @@ class Application {
     window.requestAnimationFrame((ts) => this.animationCallback(ts));
   }
 
+  private connectCheckbox(inputId: string, callback: (value: boolean) => void) {
+    const checkbox = document.getElementById(inputId) as HTMLInputElement;
+    checkbox.addEventListener('change', () => {
+      callback(checkbox.checked);
+    });
+  }
+
   // TODO: Could maybe use React for this, although that might be a bit heavy-handed.
   // For now I'll just do a bit of manual state management with addEventListener.
   private connectSliderElement(
@@ -113,7 +120,8 @@ class Application {
     step: number,
     initialValue: number,
     setter: (value: number) => void,
-    units?: string
+    units?: string,
+    behavior?: string
   ) {
     const slider = document.getElementById(inputId) as HTMLInputElement;
     const output = document.getElementById(inputId + 'Output');
@@ -125,7 +133,7 @@ class Application {
     if (units) {
       output.innerHTML += `${units}`;
     }
-    slider.addEventListener('input', () => {
+    slider.addEventListener(behavior || 'input', () => {
       const value = Math.min(Math.max(parseFloat(slider.value), min), max);
       setter(value);
       output.innerHTML = value.toFixed(2) + (units ? `${units}` : '');
@@ -133,18 +141,12 @@ class Application {
   }
 
   private connectUi() {
-    // Connect buttons to the UI:
-    const controllerCheckbox = document.getElementById(
-      'enableControllerCheckbox'
-    ) as HTMLInputElement;
-
-    controllerCheckbox.addEventListener('change', () => {
-      if (!this.controlEnabled && controllerCheckbox.checked) {
+    this.connectCheckbox('enableControllerCheckbox', (value) => {
+      if (!this.controlEnabled && value) {
         this.optimizer.reset();
       }
-      this.controlEnabled = controllerCheckbox.checked;
+      this.controlEnabled = value;
     });
-
     this.connectSliderElement(
       'simRateSlider',
       0.0,
@@ -188,6 +190,38 @@ class Application {
       this.dynamicsParams.mu_b,
       (value) => (this.dynamicsParams.mu_b = value)
     );
+    this.connectSliderElement(
+      'massDragSlider',
+      0.01,
+      0.15,
+      0.01,
+      this.dynamicsParams.c_d_1,
+      (value) => (this.dynamicsParams.c_d_1 = value),
+      'N/(m/s)<sup>2</sup>'
+    );
+    this.connectSliderElement(
+      'cartPenaltySlider',
+      0.0,
+      200.0,
+      1.0,
+      this.optimizationParams.b_x_final_penalty,
+      (value) => {
+        this.optimizationParams.b_x_final_penalty = value;
+        this.updatedOptimizationParams();
+      },
+      undefined,
+      'change'
+    );
+    this.connectCheckbox('multipleShootingCheckbox', (value) => {
+      if (value) {
+        // Hybrid multiple-shooting with spacing of 10 inputs.
+        this.optimizationParams.state_spacing = 10;
+      } else {
+        // Single-shooting.
+        this.optimizationParams.state_spacing = this.optimizationParams.window_length;
+      }
+      this.updatedOptimizationParams();
+    });
 
     const saveLogButton = document.getElementById('saveLogButton') as HTMLButtonElement;
     saveLogButton.addEventListener('click', () => {
@@ -210,6 +244,13 @@ class Application {
         }
       });
     }
+  }
+
+  private updatedOptimizationParams() {
+    if (this.optimizer) {
+      this.optimizer.delete();
+    }
+    this.optimizer = new this.wasm.Optimization(this.optimizationParams);
   }
 
   private animationCallback(timestamp: DOMHighResTimeStamp) {
