@@ -41,6 +41,7 @@ export interface TickMark {
 
 // A simple plotter.
 export class Plotter {
+  private parentId: string;
   private canvas: HTMLCanvasElement;
   private overlayDiv: HTMLDivElement;
   private context: CanvasRenderingContext2D;
@@ -50,10 +51,13 @@ export class Plotter {
   // Plot data we can render in this context.
   public data: { x: Float64Array; y: Float64Array } | null = null;
 
-  constructor(parent_id: string, config: PlotterConfig) {
-    const parent: HTMLElement = document.getElementById(parent_id) as HTMLElement;
-    console.assert(parent != null, `Element with id ${parent_id} does not exist.`);
+  constructor(parentId: string, config: PlotterConfig) {
+    const parent: HTMLElement = document.getElementById(parentId) as HTMLElement;
+    console.assert(parent != null, `Element with id ${parentId} does not exist.`);
 
+    parent.style.height = '320px';
+
+    this.parentId = parentId;
     this.canvas = document.createElement('canvas') as HTMLCanvasElement;
     this.canvas.style.position = 'absolute';
     this.canvas.style.width = '100%';

@@ -31,9 +31,12 @@ class Application {
   // Timing control:
   private previousTime: DOMHighResTimeStamp | null = null;
   private accumulatedTime: number = 0.0;
+  private totalTime: number = 0.0;
 
   // Plotters
   private controlPlotter: Plotter;
+  private anglePlotter: Plotter;
+  private speedPlotter: Plotter;
 
   // An array of logged optimization outputs that we can dump to disk.
   private loggedMessages: Array<string> = [];
@@ -71,23 +74,46 @@ class Application {
     this.mouseHandler = new MouseHandler();
 
     this.controlPlotter = new Plotter('controlPlot', {
-      yAxisLimitLower: -50.0,
-      yAxisLimitUpper: 50.0,
+      yAxisLimitLower: -150.0,
+      yAxisLimitUpper: 150.0,
       gridX: {
         majorInterval: 0.1, //  Seconds.
         numMinorTicks: 0
       },
       gridY: {
-        majorInterval: 10.0, //  Newtons.
+        majorInterval: 30.0, //  Newtons.
         numMinorTicks: 0
       }
     });
-
+    this.anglePlotter = new Plotter('anglePlot', {
+      yAxisLimitLower: -180.0,
+      yAxisLimitUpper: 180.0,
+      gridX: {
+        majorInterval: 0.1, // Seconds.
+        numMinorTicks: 0
+      },
+      gridY: {
+        majorInterval: 30.0, // Degrees.
+        numMinorTicks: 0
+      }
+    });
+    this.speedPlotter = new Plotter('speedPlot', {
+      yAxisLimitLower: -5.0,
+      yAxisLimitUpper: 5.0,
+      gridX: {
+        majorInterval: 0.1, // Seconds.
+        numMinorTicks: 0
+      },
+      gridY: {
+        majorInterval: 1.0, // m/s.
+        numMinorTicks: 0
+      }
+    });
     this.connectUi();
   }
 
   // Deallocate C++ resources.
-  // This is used when running with `-fsanitize=address`.
+  // This is for use when running with `-fsanitize=address`.
   public cleanup() {
     this.simulator.delete();
     this.optimizer.delete();
@@ -207,16 +233,6 @@ class Application {
       undefined,
       'change'
     );
-    this.connectCheckbox('multipleShootingCheckbox', (value) => {
-      if (value) {
-        // Hybrid multiple-shooting with spacing of 10 inputs.
-        this.optimizationParams.state_spacing = 10;
-      } else {
-        // Single-shooting.
-        this.optimizationParams.state_spacing = this.optimizationParams.window_length;
-      }
-      this.updatedOptimizationParams();
-    });
 
     const saveLogButton = document.getElementById('saveLogButton') as HTMLButtonElement;
     saveLogButton.addEventListener('click', () => {
@@ -241,6 +257,7 @@ class Application {
     }
   }
 
+  // When updating optimization params we need to tear down the C++ optimizer and reconstruct it.
   private updatedOptimizationParams() {
     if (this.optimizer) {
       this.optimizer.delete();
@@ -284,6 +301,8 @@ class Application {
 
     this.renderer.drawSingle(currentState, this.dynamicsParams, interaction);
     this.controlPlotter.draw();
+    this.anglePlotter.draw();
+    this.speedPlotter.draw();
 
     this.previousTime = timestamp;
     this.requestFrame();
@@ -292,7 +311,8 @@ class Application {
   // Run the MPC and simulator.
   private stepControlAndSim(dt: number) {
     // Run the model predictive controller.
-    const outputs = this.optimizer.step(this.simulator.getState(), this.dynamicsParams);
+    const currentState = this.simulator.getState() as SingleCartPoleState;
+    const outputs = this.optimizer.step(currentState, this.dynamicsParams);
 
     // Update the logged state.
     // We apply a limit on the history length to avoid exhausting memory.
@@ -309,7 +329,10 @@ class Application {
       this.externalForces
     );
 
-    this.updatePlots(outputs);
+    const currentTime = this.totalTime;
+    this.totalTime += dt;
+
+    this.updatePlots(currentTime, currentState, outputs);
 
     // We need to manually clean up C++ objects allocated via embind.
     outputs.delete();
@@ -346,26 +369,42 @@ class Application {
     };
   }
 
-  private updatePlots(outputs: OptimizationOutputs) {
-    let times: Float64Array = new Float64Array(outputs.windowLength());
-    for (let t = 0; t < outputs.windowLength(); ++t) {
-      times[t] = t * 0.01;
+  private appendToPlotter(plotter: Plotter, x: number, y: number, maxLength: number) {
+    if (!plotter.data) {
+      plotter.data = {
+        x: new Float64Array([x]),
+        y: new Float64Array([y])
+      };
+    } else {
+      const sliceStart = plotter.data.x.length > maxLength ? 1 : 0;
+      plotter.data.x = new Float64Array([...plotter.data.x.slice(sliceStart), x]);
+      plotter.data.y = new Float64Array([...plotter.data.y.slice(sliceStart), y]);
     }
+  }
 
-    let u_controls: Float64Array = new Float64Array(outputs.windowLength());
-    // let x_states: Array<SingleCartPoleState> = [];
-    times.forEach((_, index) => {
-      u_controls[index] = outputs.getControl(index);
-      // x_states.push(outputs.getPredictedState(index) as SingleCartPoleState);
-    });
-
-    // const angles = new Float64Array(
-    //   x_states.map((x: SingleCartPoleState, _) => {
-    //     return x.th_1;
-    //   })
-    // );
-
-    this.controlPlotter.data = { x: times, y: u_controls };
+  private updatePlots(
+    currentTime: number,
+    currentState: SingleCartPoleState,
+    outputs: OptimizationOutputs
+  ) {
+    this.appendToPlotter(
+      this.controlPlotter,
+      currentTime,
+      outputs.getControl(0),
+      outputs.windowLength()
+    );
+    this.appendToPlotter(
+      this.anglePlotter,
+      currentTime,
+      (currentState.th_1 * 180) / Math.PI,
+      outputs.windowLength()
+    );
+    this.appendToPlotter(
+      this.speedPlotter,
+      currentTime,
+      currentState.b_x_dot,
+      outputs.windowLength()
+    );
   }
 }
 
