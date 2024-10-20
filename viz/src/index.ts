@@ -12,7 +12,6 @@ import OptimizationWasm, {
 
 import { Renderer } from './renderer';
 import { Plotter } from './plotter';
-import { TicToc } from './tic_toc';
 import { MouseHandler, MouseInteraction } from './input';
 import { Point, SingleCartPoleState, SingleCartPoleParams, OptimizationParams } from './interfaces';
 
@@ -42,10 +41,6 @@ class Application {
   // UI controls
   private controlEnabled: boolean = true;
   private simRate: number = 1.0;
-
-  // For collecting execution times of the optimization:
-  private optimizationTicToc: TicToc = new TicToc();
-  private iteration: number = 0;
 
   constructor(wasm: MainModule) {
     this.wasm = wasm;
@@ -292,27 +287,18 @@ class Application {
 
     this.previousTime = timestamp;
     this.requestFrame();
-    this.iteration++;
   }
 
   // Run the MPC and simulator.
   private stepControlAndSim(dt: number) {
     // Run the model predictive controller.
-    const outputs = this.optimizationTicToc.measureSpan(() => {
-      return this.optimizer.step(this.simulator.getState(), this.dynamicsParams);
-    });
+    const outputs = this.optimizer.step(this.simulator.getState(), this.dynamicsParams);
 
     // Update the logged state.
     // We apply a limit on the history length to avoid exhausting memory.
     this.loggedMessages.push(outputs.toJson());
     if (this.loggedMessages.length > 5000) {
       this.loggedMessages.shift();
-    }
-
-    const enableTiming = false;
-    if (enableTiming && this.iteration > 0 && this.iteration % 500 == 0) {
-      const { max: max, mean: mean } = this.optimizationTicToc.computeStats();
-      console.log(`Optimization times: mean = ${mean}, max = ${max}`);
     }
 
     // Step the sim forward. We only apply the control if the checkbox is checked.
