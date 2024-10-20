@@ -11,7 +11,7 @@ import OptimizationWasm, {
 } from './optimization-wasm';
 
 import { Renderer } from './renderer';
-import { Plotter } from './plotter';
+import { Range, Plotter } from './plotter';
 import { MouseHandler, MouseInteraction } from './input';
 import { Point, SingleCartPoleState, SingleCartPoleParams, OptimizationParams } from './interfaces';
 
@@ -74,38 +74,35 @@ class Application {
     this.mouseHandler = new MouseHandler();
 
     this.controlPlotter = new Plotter('controlPlot', {
-      yAxisLimitLower: -150.0,
-      yAxisLimitUpper: 150.0,
+      limitsY: new Range(-150.0, 150.0),
       gridX: {
-        majorInterval: 0.1, //  Seconds.
+        numMajorTicks: 5,
         numMinorTicks: 0
       },
       gridY: {
-        majorInterval: 30.0, //  Newtons.
+        numMajorTicks: 5,
         numMinorTicks: 0
       }
     });
     this.anglePlotter = new Plotter('anglePlot', {
-      yAxisLimitLower: -180.0,
-      yAxisLimitUpper: 180.0,
+      limitsY: new Range(-180.0, 180.0),
       gridX: {
-        majorInterval: 0.1, // Seconds.
+        numMajorTicks: 5,
         numMinorTicks: 0
       },
       gridY: {
-        majorInterval: 30.0, // Degrees.
+        numMajorTicks: 5,
         numMinorTicks: 0
       }
     });
     this.speedPlotter = new Plotter('speedPlot', {
-      yAxisLimitLower: -5.0,
-      yAxisLimitUpper: 5.0,
+      limitsY: new Range(-5.0, 5.0),
       gridX: {
-        majorInterval: 0.1, // Seconds.
+        numMajorTicks: 5,
         numMinorTicks: 0
       },
       gridY: {
-        majorInterval: 1.0, // m/s.
+        numMajorTicks: 5,
         numMinorTicks: 0
       }
     });

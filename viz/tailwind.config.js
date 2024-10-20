@@ -7,4 +7,7 @@ module.exports = {
         extend: {},
     },
     plugins: [],
+    safelist: [
+        'text-slate-100'
+    ]
 }
