@@ -39,7 +39,6 @@ export interface TickMark {
 
 // A simple plotter.
 export class Plotter {
-  private parentId: string;
   private canvas: HTMLCanvasElement;
   private overlayDiv: HTMLDivElement;
   private context: CanvasRenderingContext2D;
@@ -55,7 +54,6 @@ export class Plotter {
 
     parent.style.height = '320px';
 
-    this.parentId = parentId;
     this.canvas = document.createElement('canvas') as HTMLCanvasElement;
     this.canvas.style.position = 'absolute';
     this.canvas.style.width = '100%';
