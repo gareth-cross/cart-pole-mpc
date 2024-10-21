@@ -52,19 +52,18 @@ export class Plotter {
     const parent: HTMLElement = document.getElementById(parentId) as HTMLElement;
     console.assert(parent != null, `Element with id ${parentId} does not exist.`);
 
-    parent.style.height = '320px';
-
     this.canvas = document.createElement('canvas') as HTMLCanvasElement;
-    this.canvas.style.position = 'absolute';
-    this.canvas.style.width = '100%';
-    this.canvas.style.height = '320px';
+    this.canvas.classList.add('h-full');
+    this.canvas.classList.add('w-full');
     this.context = this.canvas.getContext('2d');
     parent.appendChild(this.canvas);
 
     this.overlayDiv = document.createElement('div') as HTMLDivElement;
     this.overlayDiv.style.position = 'absolute';
-    this.overlayDiv.style.right = '10px';
-    this.overlayDiv.classList.add('text-slate-100');
+    this.overlayDiv.style.right = '0px';
+    this.overlayDiv.style.top = '0px';
+    this.overlayDiv.classList.add('text-slate-100', 'pr-2', 'pt-1');
+    // this.overlayDiv.classList.add();
     parent.appendChild(this.overlayDiv);
 
     this.config = config;
@@ -312,7 +311,7 @@ export class Plotter {
     this.context.restore();
 
     // update the overlay
-    this.overlayDiv.innerHTML = `x = ${pt.x.toPrecision(3)}, y = ${pt.y.toPrecision(4)}`;
+    this.overlayDiv.innerHTML = `x = ${pt.x.toFixed(3)}, y = ${pt.y.toPrecision(4)}`;
   }
 
   private mouseLeave(event: MouseEvent) {

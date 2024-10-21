@@ -22,28 +22,27 @@ export class MouseInteraction {
 
 // Handle user interaction with the cart-pole system via mouse events.
 export class MouseHandler {
+  private canvas: HTMLCanvasElement;
   private mousePosition: Point | null = null;
-  private hasPendingClick: boolean = false;
+  private isClicked: boolean = false;
   private activeIndex: number | null = null;
 
   constructor() {
     const canvas: HTMLCanvasElement = document.getElementById('canvas') as HTMLCanvasElement;
+    this.canvas = canvas;
 
-    canvas.addEventListener('mouseenter', (e) => {
-      this.mouseEnter(e);
-    });
-    canvas.addEventListener('mouseleave', (e) => {
-      this.mouseLeave(e);
-    });
-    canvas.addEventListener('mousemove', (e) => {
-      this.mouseMove(e);
-    });
-    canvas.addEventListener('mousedown', (e) => {
-      this.mouseDown(e);
-    });
-    canvas.addEventListener('mouseup', (e) => {
-      this.mouseUp(e);
-    });
+    canvas.addEventListener('mouseenter', (e) => this.mouseEnter(e));
+    canvas.addEventListener('mouseleave', (e) => this.mouseLeave(e));
+
+    if (!window.matchMedia('(pointer: coarse)').matches) {
+      canvas.addEventListener('mousemove', (e) => this.mouseMove(e));
+      canvas.addEventListener('mousedown', (e) => this.mouseDown(e));
+      canvas.addEventListener('mouseup', (e) => this.mouseUp());
+    } else {
+      canvas.addEventListener('touchstart', (e) => this.touchStart(e));
+      canvas.addEventListener('touchend', (e) => this.touchEnd());
+      canvas.addEventListener('touchmove', (e) => this.touchMove(e));
+    }
   }
 
   // Given the current state of the system, check what interaction to execute.
@@ -78,7 +77,7 @@ export class MouseHandler {
         Math.sqrt(Math.pow(mx - p.x, 2) + Math.pow(my - p.y, 2))
       );
       const minIndex = indexOfSmallest(distances);
-      if (this.hasPendingClick) {
+      if (this.isClicked) {
         this.activeIndex = minIndex;
       }
       return minIndex;
@@ -89,7 +88,7 @@ export class MouseHandler {
   private mouseEnter(event: MouseEvent) {}
   private mouseLeave(event: MouseEvent) {
     this.mousePosition = null;
-    this.hasPendingClick = false;
+    this.isClicked = false;
     this.activeIndex = null;
   }
   private mouseMove(event: MouseEvent) {
@@ -97,10 +96,33 @@ export class MouseHandler {
   }
   private mouseDown(event: MouseEvent) {
     this.mousePosition = { x: event.offsetX, y: event.offsetY };
-    this.hasPendingClick = true;
+    this.isClicked = true;
   }
-  private mouseUp(event: MouseEvent) {
-    this.hasPendingClick = false;
+  private mouseUp() {
+    this.isClicked = false;
     this.activeIndex = null;
+  }
+
+  private touchStart(event: TouchEvent) {
+    const domRect = this.canvas.getBoundingClientRect();
+    const touch = event.touches[0];
+    this.mousePosition = {
+      x: touch.clientX - domRect.left,
+      y: touch.clientY - domRect.top
+    };
+    this.isClicked = true;
+  }
+  private touchMove(event: TouchEvent) {
+    const domRect = this.canvas.getBoundingClientRect();
+    const touch = event.touches[0];
+    this.mousePosition = {
+      x: touch.clientX - domRect.left,
+      y: touch.clientY - domRect.top
+    };
+  }
+  private touchEnd() {
+    this.mouseUp();
+    // Set this null so the arrow hides.
+    this.mousePosition = null;
   }
 }

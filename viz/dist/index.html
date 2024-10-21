@@ -9,22 +9,25 @@
     <script src="main.js"></script>
   </head>
 
-  <body id="body" class="flex flex-col justify-left m-4">
-    <h1 class="text-4xl text-white pb-4">Viz</h1>
-    <div class="grid grid-cols-2 gap-4 max-w-screen-lg">
-      <!-- First column -->
+  <body id="body">
+    <div class="grid grid-cols-1 md:grid-cols-2 m-2 gap-2 md:gap-3 max-w-screen-lg">
+      <!-- First column (on desktop) -->
       <div class="flex flex-col space-y-2">
         <!-- The main canvas where the sim is rendered. -->
         <div
           class="rounded-xl overflow-hidden bg-slate-800 border-solid border-2 border-sky-500 shadow-inner"
         >
-          <canvas id="canvas"> </canvas>
+          <canvas id="canvas" class="w-full touch-none"> </canvas>
         </div>
-        <div class="rounded-xl bg-slate-800 overflow-auto p-6">
-          <table id="controlTable" class="w-full border-collapse border-slate-500 text-slate-300">
+        <!-- A panel with controls: -->
+        <div class="rounded-xl bg-slate-800 overflow-auto px-4 py-2">
+          <table
+            id="controlTable"
+            class="w-full border-collapse border-slate-500 text-xs sm:text-base text-slate-300"
+          >
             <tr>
               <td class="w-auto whitespace-nowrap font-semibold text-right py-2 pr-4">
-                Sim params:
+                Parameters:
               </td>
               <td class="w-full"></td>
             </tr>
@@ -108,26 +111,16 @@
                 <output for="massDragSlider" id="massDragSliderOutput" class="text-center"></output>
               </td>
             </tr>
-            <!-- Controller params header. -->
-            <tr>
-              <td class="w-auto whitespace-nowrap font-semibold text-right py-4 pr-4">
-                Control parameters:
-              </td>
-              <td class="w-full text-slate-500 text-center pr-4">
-                <!-- Changing these will reset the optimization. -->
-              </td>
-              <td class="w-auto whitespace-nowrap"></td>
-            </tr>
             <!-- Toggle switch on the controller. -->
             <tr>
               <td class="w-auto whitespace-nowrap text-right py-2 pr-4">
                 <label for="enableControllerCheckbox">Toggle control:</label>
               </td>
-              <td class="w-full">
+              <td class="w-full align-middle text-center">
                 <input
                   id="enableControllerCheckbox"
                   type="checkbox"
-                  class="accent-green-500"
+                  class="accent-green-500 h-6 w-6"
                   checked
                 />
               </td>
@@ -160,30 +153,41 @@
             </tr>
             -->
           </table>
-          <div class="grid grid-cols-2 mt-4">
-            <button id="saveTracesButton" type="button" class="button-38 invisible">
+          <!-- buttons, hidden for now... -->
+          <div class="grid grid-cols-2 mt-2 mb-2 collapse hidden sm:visible">
+            <button
+              id="saveTracesButton"
+              type="button"
+              class="font-semibold text-center custom-button collapse"
+            >
               Save Traces
             </button>
-            <button id="saveLogButton" type="button" class="button-38">Save Log</button>
+            <button
+              id="saveLogButton"
+              type="button"
+              class="font-semibold text-center custom-button collapse sm:visible"
+            >
+              Save Log
+            </button>
           </div>
         </div>
       </div>
-      <div class="flex flex-col space-y-2" id="plotColumn">
+      <div class="flex flex-col justify-between gap-y-2" id="plotColumn">
         <div
           id="controlPlot"
-          class="rounded-xl overflow-hidden bg-slate-800 border-solid border-2 border-sky-500 plot-canvas relative"
+          class="w-full rounded-xl overflow-hidden bg-slate-800 border-solid border-2 border-sky-500 relative plotters"
         >
           <div class="text-slate-100 absolute pl-2 pt-1">Control Input [N]</div>
         </div>
         <div
           id="anglePlot"
-          class="rounded-xl overflow-hidden bg-slate-800 border-solid border-2 border-sky-500 plot-canvas relative"
+          class="w-full rounded-xl overflow-hidden bg-slate-800 border-solid border-2 border-sky-500 relative plotters"
         >
           <div class="text-slate-100 absolute pl-2 pt-1">Pole Angle [°]</div>
         </div>
         <div
           id="speedPlot"
-          class="rounded-xl overflow-hidden bg-slate-800 border-solid border-2 border-sky-500 plot-canvas relative"
+          class="w-full rounded-xl overflow-hidden bg-slate-800 border-solid border-2 border-sky-500 relative plotters"
         >
           <div class="text-slate-100 absolute pl-2 pt-1">Cart Speed [m/s]</div>
         </div>
