@@ -5,6 +5,7 @@ project(pendulum CXX)
 option(BUILD_WITH_EMSCRIPTEN "Configure for compilation under emscripten." OFF)
 option(EMSCRIPTEN_ENABLE_LTO "Use LTO when building in Release mode." OFF)
 option(EMSCRIPTEN_ENABLE_SANITIZE "Use address sanitization." OFF)
+option(EMSCRIPTEN_ENABLE_PROFILING "Enable --profiling-funcs." OFF)
 
 # emcc will not accept various arguments, like -mtune=haswell, etc. print these
 # so we can see what the user environment has specified.
@@ -25,12 +26,14 @@ if(BUILD_WITH_EMSCRIPTEN)
     endif()
   endif()
   if(CMAKE_BUILD_TYPE STREQUAL "Release")
-    add_link_options(--profiling-funcs)
     # Enable LTO in Release builds.
     if(EMSCRIPTEN_ENABLE_LTO)
       add_compile_options(-flto)
       add_link_options(-flto)
     endif()
+  endif()
+  if(EMSCRIPTEN_ENABLE_PROFILING)
+    add_link_options(--profiling-funcs)
   endif()
 endif()
 
