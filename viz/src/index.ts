@@ -1,15 +1,9 @@
 // Copyright 2024 Gareth Cross.
-import './styles.css';
-
 import { saveAs } from 'file-saver';
 
-import OptimizationWasm, {
-  MainModule,
-  Simulator,
-  Optimization,
-  OptimizationOutputs
-} from './optimization-wasm';
+import './styles.css';
 
+import { MainModule, Simulator, Optimization, OptimizationOutputs } from './optimization-wasm';
 import { Renderer } from './renderer';
 import { Range, Plotter } from './plotter';
 import { MouseHandler, MouseInteraction } from './input';
@@ -406,10 +400,12 @@ class Application {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  OptimizationWasm().then((mod: MainModule) => {
-    console.log('Loaded WASM module.');
-    const app = new Application(mod);
-    // Start the animation loop:
-    app.requestFrame();
+  import(/* webpackChunkName: "wasm-module" */ './optimization-wasm').then((mod) => {
+    console.log('Loaded WASM JS file.');
+    mod.default().then((mainModule: MainModule) => {
+      const app = new Application(mainModule);
+      // Start the animation loop:
+      app.requestFrame();
+    });
   });
 });

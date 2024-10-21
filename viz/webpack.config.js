@@ -6,7 +6,9 @@ module.exports = {
     watchOptions: {
         ignored: '**/node_modules',
     },
-    entry: './src/index.ts',
+    entry: {
+        index: './src/index.ts',
+    },
     devtool: 'inline-source-map',
     module: {
         rules: [

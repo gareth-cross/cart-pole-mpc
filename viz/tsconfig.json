@@ -3,7 +3,7 @@
         "outDir": "./dist/",
         "sourceMap": true,
         "noImplicitAny": true,
-        "module": "es6",
+        "module": "ESNext",
         "target": "ES6",
         "jsx": "react-jsx",
         "allowJs": true,
