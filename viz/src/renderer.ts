@@ -27,8 +27,17 @@ export class Renderer {
       return false;
     };
 
+    // Stop the copy/share dialog from popping up on mobile.
+    this.canvas.addEventListener('contextmenu', (e) => {
+      e.returnValue = false;
+      e.preventDefault();
+    });
+
     // Automatically resize when the parent div changes size:
     const canvasParent = this.canvas.parentElement as HTMLDivElement;
+    canvasParent.onselectstart = function () {
+      return false;
+    };
     new ResizeObserver(() => this.parentSizeChanged()).observe(canvasParent);
     this.parentSizeChanged();
   }
