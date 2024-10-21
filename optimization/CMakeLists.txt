@@ -58,7 +58,7 @@ if(BUILD_WITH_EMSCRIPTEN)
        -sEXPORT_NAME=OptimizationWasm -lembind \
        --emit-tsd ${CMAKE_CURRENT_BINARY_DIR}/${WASM_MODULE_NAME}.d.ts \
        -sSTACK_SIZE=1048576 \
-       -sINITIAL_MEMORY=128MB \
+       -sINITIAL_MEMORY=64MB \
       ${EXTRA_WASM_LINK_FLAGS}")
 
   # Copy built JavaScirpt to the viz node project.
