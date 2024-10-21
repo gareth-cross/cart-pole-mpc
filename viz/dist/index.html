@@ -19,6 +19,11 @@
         >
           <canvas id="canvas" class="w-full touch-none"> </canvas>
         </div>
+        <!--
+        <div class="rounded-xl overflow-hidden bg-slate-800 px-4 py-2 sm:hidden">
+          <input type="range" class="slider align-middle w-full custom-slider mb-1" />
+        </div>
+        -->
         <!-- A panel with controls: -->
         <div class="rounded-xl bg-slate-800 overflow-auto px-4 py-2">
           <table
@@ -37,7 +42,11 @@
                 <label for="simRateSlider">Sim rate:</label>
               </td>
               <td class="w-full pr-4">
-                <input type="range" class="slider w-full" id="simRateSlider" />
+                <input
+                  type="range"
+                  class="slider align-middle w-full custom-slider"
+                  id="simRateSlider"
+                />
               </td>
               <td class="w-auto whitespace-nowrap">
                 <output for="simRateSlider" id="simRateSliderOutput" class="text-center"></output>
@@ -49,7 +58,11 @@
                 <label for="baseMassSlider">Cart mass (m<sub>b</sub>):</label>
               </td>
               <td class="w-full pr-4">
-                <input type="range" class="slider w-full" id="baseMassSlider" />
+                <input
+                  type="range"
+                  class="slider align-middle w-full custom-slider"
+                  id="baseMassSlider"
+                />
               </td>
               <td class="w-auto whitespace-nowrap">
                 <output for="baseMassSlider" id="baseMassSliderOutput" class="text-center"></output>
@@ -61,7 +74,11 @@
                 <label for="poleMassSlider">Pole mass (m<sub>1</sub>):</label>
               </td>
               <td class="w-full pr-4">
-                <input type="range" class="slider w-full" id="poleMassSlider" />
+                <input
+                  type="range"
+                  class="slider align-middle w-full custom-slider"
+                  id="poleMassSlider"
+                />
               </td>
               <td class="w-auto whitespace-nowrap">
                 <output for="poleMassSlider" id="poleMassSliderOutput" class="text-center"></output>
@@ -73,7 +90,11 @@
                 <label for="armLengthSlider">Arm length (l<sub>1</sub>):</label>
               </td>
               <td class="w-full pr-4">
-                <input type="range" class="slider w-full" id="armLengthSlider" />
+                <input
+                  type="range"
+                  class="slider align-middle w-full custom-slider"
+                  id="armLengthSlider"
+                />
               </td>
               <td class="w-auto whitespace-nowrap">
                 <output
@@ -89,7 +110,11 @@
                 <label for="cartFrictionSlider">Cart friction (μ):</label>
               </td>
               <td class="w-full pr-4">
-                <input type="range" class="slider w-full" id="cartFrictionSlider" />
+                <input
+                  type="range"
+                  class="slider align-middle w-full custom-slider"
+                  id="cartFrictionSlider"
+                />
               </td>
               <td class="w-auto whitespace-nowrap">
                 <output
@@ -105,7 +130,11 @@
                 <label for="massDragSlider">Aero drag (c<sub>d1</sub>):</label>
               </td>
               <td class="w-full pr-4">
-                <input type="range" class="slider w-full" id="massDragSlider" />
+                <input
+                  type="range"
+                  class="slider align-middle w-full custom-slider"
+                  id="massDragSlider"
+                />
               </td>
               <td class="w-auto whitespace-nowrap">
                 <output for="massDragSlider" id="massDragSliderOutput" class="text-center"></output>
@@ -116,11 +145,11 @@
               <td class="w-auto whitespace-nowrap text-right py-2 pr-4">
                 <label for="enableControllerCheckbox">Toggle control:</label>
               </td>
-              <td class="w-full align-middle text-center">
+              <td class="w-full text-center">
                 <input
                   id="enableControllerCheckbox"
                   type="checkbox"
-                  class="accent-green-500 h-6 w-6"
+                  class="accent-green-500 align-middle h-6 w-6 custom-checkbox"
                   checked
                 />
               </td>
@@ -135,7 +164,11 @@
                 >
               </td>
               <td class="w-full pr-4">
-                <input type="range" class="slider w-full" id="cartPenaltySlider" />
+                <input
+                  type="range"
+                  class="slider align-middle w-full custom-slider"
+                  id="cartPenaltySlider"
+                />
               </td>
               <td class="w-auto whitespace-nowrap">
                 <output
