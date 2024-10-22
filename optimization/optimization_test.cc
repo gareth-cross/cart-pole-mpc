@@ -38,7 +38,7 @@ TEST(OptimizationTest, TestCartPoleMultipleShootingClosedLoop) {
   Optimization optimization{optimization_params};
   for (std::size_t t = 0; t < num_steps; ++t) {
     // Step the optimization and compute a control output:
-    const OptimizationOutputs outputs = optimization.Step(sim.GetState(), dynamics_params);
+    const OptimizationOutputs outputs = optimization.Step(sim.GetState(), dynamics_params, 0.0);
 
     // Were the end-points satisfied?
     ASSERT_NE(mini_opt::NLSTerminationState::QP_INDEFINITE,

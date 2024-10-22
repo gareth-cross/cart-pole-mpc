@@ -108,9 +108,9 @@ EMSCRIPTEN_BINDINGS(OptimizationWasm) {
       })
       .function(
           "step",
-          +[](Optimization& self, em::val state, em::val params) {
+          +[](Optimization& self, em::val state, em::val params, double b_x_set_point) {
             return self.Step(StructFromObject<SingleCartPoleState>(state),
-                             StructFromObject<SingleCartPoleParams>(params));
+                             StructFromObject<SingleCartPoleParams>(params), b_x_set_point);
           })
       .function("reset", &Optimization::Reset);
 

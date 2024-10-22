@@ -70,7 +70,8 @@ class Optimization {
 
   // Run an iteration of optimization and compute control outputs.
   [[nodiscard]] OptimizationOutputs Step(const SingleCartPoleState& current_state,
-                                         const SingleCartPoleParams& dynamics_params);
+                                         const SingleCartPoleParams& dynamics_params,
+                                         double b_x_set_point);
 
   // Discard previous initial guess, which will reset the problem.
   void Reset() { previous_solution_.resize(0); }
@@ -83,7 +84,8 @@ class Optimization {
 
  private:
   void BuildProblem(const SingleCartPoleState& current_state,
-                    const SingleCartPoleParams& dynamics_params);
+                    const SingleCartPoleParams& dynamics_params,
+                    double b_x_set_point);
 
   // Fill initial guess vector by integrating the dynamics model.
   void FillInitialGuess(Eigen::VectorXd& guess, const SingleCartPoleParams& dynamics_params,

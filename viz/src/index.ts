@@ -22,6 +22,9 @@ class Application {
   // There is one element in this array per mass in the system.
   private externalForces: Array<Point>;
 
+  // The set-point for the cart location.
+  private cartSetPoint: number = 0.0;
+
   // Timing control:
   private previousTime: DOMHighResTimeStamp | null = null;
   private accumulatedTime: number = 0.0;
@@ -212,6 +215,15 @@ class Application {
       'N/(m/s)<sup>2</sup>'
     );
     this.connectSliderElement(
+      'cartSetPointSlider',
+      -1.0,
+      1.0,
+      0.01,
+      this.cartSetPoint,
+      (value) => (this.cartSetPoint = value),
+      'm'
+    );
+    this.connectSliderElement(
       'cartPenaltySlider',
       0.0,
       200.0,
@@ -303,7 +315,7 @@ class Application {
   private stepControlAndSim(dt: number) {
     // Run the model predictive controller.
     const currentState = this.simulator.getState() as SingleCartPoleState;
-    const outputs = this.optimizer.step(currentState, this.dynamicsParams);
+    const outputs = this.optimizer.step(currentState, this.dynamicsParams, this.cartSetPoint);
 
     // Update the logged state.
     // We apply a limit on the history length to avoid exhausting memory.

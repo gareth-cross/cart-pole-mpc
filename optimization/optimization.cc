@@ -38,10 +38,11 @@ inline constexpr int MapKey(const KeyType type, const std::size_t index,
 }
 
 OptimizationOutputs Optimization::Step(const SingleCartPoleState& current_state,
-                                       const SingleCartPoleParams& dynamics_params) {
+                                       const SingleCartPoleParams& dynamics_params,
+                                       const double b_x_set_point) {
   // TODO: Don't build all of the problem every iteration. We can re-use the allocated equality
   // constraints.
-  BuildProblem(current_state, dynamics_params);
+  BuildProblem(current_state, dynamics_params, b_x_set_point);
 
   // Copy the guess from the previous solution:
   Eigen::VectorXd guess = Eigen::VectorXd::Zero(problem_.dimension);
@@ -160,7 +161,8 @@ auto CreateDynamicalConstraint(const SingleCartPoleParams params, const std::siz
 }
 
 void Optimization::BuildProblem(const SingleCartPoleState& current_state,
-                                const SingleCartPoleParams& dynamics_params) {
+                                const SingleCartPoleParams& dynamics_params,
+                                const double b_x_set_point) {
   static constexpr int state_dim = 4;
   const std::size_t num_states = params_.NumStates();
 
@@ -264,12 +266,13 @@ void Optimization::BuildProblem(const SingleCartPoleState& current_state,
   const double b_x_final_weight = params_.b_x_final_penalty;
   problem_.costs.push_back(mini_opt::MakeResidual<1, 1>(
       {MapKey<state_dim>(KeyType::B_X, num_states - 1, num_states)},
-      [b_x_final_weight](const Eigen::Matrix<double, 1, 1>& vars,
-                         Eigen::Matrix<double, 1, 1>* J_out) -> Eigen::Matrix<double, 1, 1> {
+      [b_x_final_weight, b_x_set_point](
+          const Eigen::Matrix<double, 1, 1>& vars,
+          Eigen::Matrix<double, 1, 1>* J_out) -> Eigen::Matrix<double, 1, 1> {
         if (J_out) {
           J_out->operator[](0) = b_x_final_weight;
         }
-        return Eigen::Matrix<double, 1, 1>{vars[0] * b_x_final_weight};
+        return Eigen::Matrix<double, 1, 1>{(vars[0] - b_x_set_point) * b_x_final_weight};
       }));
 
   for (std::size_t k = 0; k < params_.window_length; ++k) {
