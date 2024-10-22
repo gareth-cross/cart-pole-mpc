@@ -1,7 +1,7 @@
-// Copyright 2024 Gareth Cross.
+// Copyright (c) 2024 Gareth Cross.
 #include "simulator.hpp"
 
-#include "mini_opt/assertions.hpp"
+#include <mini_opt/assertions.hpp>
 
 #include "integration.hpp"
 #include "single_pendulum_dynamics.hpp"

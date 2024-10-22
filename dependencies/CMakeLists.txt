@@ -59,6 +59,9 @@ function(add_mini_opt)
     set(MINI_OPT_BUILD_TESTS
         OFF
         CACHE BOOL "" FORCE)
+    set(MINI_OPT_SERIALIZATION
+        ON
+        CACHE BOOL "" FORCE)
   endif()
   add_subdirectory(mini_opt)
 endfunction()

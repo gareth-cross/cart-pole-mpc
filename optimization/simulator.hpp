@@ -1,4 +1,4 @@
-// Copyright 2024 Gareth Cross.
+// Copyright (c) 2024 Gareth Cross.
 #pragma once
 #include <Eigen/Core>
 

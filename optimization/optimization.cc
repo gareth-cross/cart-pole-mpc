@@ -1,9 +1,10 @@
-// Copyright 2024 Gareth Cross.
+// Copyright (c) 2024 Gareth Cross.
 #include "optimization.hpp"
+
+#include <mini_opt/structs.hpp>
 
 #include "integration.hpp"
 #include "key.hpp"
-#include "mini_opt/structs.hpp"
 #include "single_pendulum_dynamics.hpp"
 #include "structs.hpp"
 
@@ -89,15 +90,6 @@ OptimizationOutputs Optimization::Step(const SingleCartPoleState& current_state,
 
   std::vector<SingleCartPoleState> predicted_states =
       ComputePredictedStates(u_out, dynamics_params, current_state);
-
-#if 0
-  const SingleCartPoleState terminal_state = predicted_states.back();
-  if (std::abs(terminal_state.b_x_dot) > 2.0 || std::abs(terminal_state.th_1_dot) > 5.0) {
-    fmt::print("Will reset the optimization: {}, {}\n", terminal_state.b_x_dot,
-               terminal_state.th_1_dot);
-    previous_solution_.resize(0);
-  }
-#endif
 
   return OptimizationOutputs{current_state, std::move(previous_solution), std::move(outputs),
                              std::vector<double>{u_out.begin(), u_out.end()},
@@ -192,13 +184,13 @@ void Optimization::BuildProblem(const SingleCartPoleState& current_state,
 
     auto cost =
         CreateDynamicalConstraint(dynamics_params, params_.state_spacing, params_.control_dt);
-    problem_.equality_constraints.emplace_back(
-        new mini_opt::Residual<4, Eigen::Dynamic>(std::move(indices), cost));
+    problem_.equality_constraints.push_back(
+        mini_opt::MakeResidual<4, Eigen::Dynamic>(std::move(indices), cost));
   }
 
   // Equality constraint on the initial state:
   const auto x_current = current_state.ToVector();
-  problem_.equality_constraints.emplace_back(new mini_opt::Residual<4, 4>(
+  problem_.equality_constraints.push_back(mini_opt::MakeResidual<4, 4>(
       {MapKey<state_dim>(KeyType::B_X, 0, num_states),
        MapKey<state_dim>(KeyType::THETA_1, 0, num_states),
        MapKey<state_dim>(KeyType::B_X_DOT, 0, num_states),
@@ -213,18 +205,18 @@ void Optimization::BuildProblem(const SingleCartPoleState& current_state,
         return delta;
       }));
 
-  problem_.equality_constraints.emplace_back(new mini_opt::Residual<1, 1>(
-        {MapKey<state_dim>(KeyType::THETA_1, num_states - 1, num_states)},
-        [](const Eigen::Matrix<double, 1, 1>& vars,
-           Eigen::Matrix<double, 1, 1>* J_out) -> Eigen::Matrix<double, 1, 1> {
-          if (J_out) {
-            J_out->setIdentity();
-          }
-          return Eigen::Matrix<double, 1, 1>{mod_pi(vars[0] - M_PI / 2)};
-        }));
+  problem_.equality_constraints.push_back(mini_opt::MakeResidual<1, 1>(
+      {MapKey<state_dim>(KeyType::THETA_1, num_states - 1, num_states)},
+      [](const Eigen::Matrix<double, 1, 1>& vars,
+         Eigen::Matrix<double, 1, 1>* J_out) -> Eigen::Matrix<double, 1, 1> {
+        if (J_out) {
+          J_out->setIdentity();
+        }
+        return Eigen::Matrix<double, 1, 1>{mod_pi(vars[0] - M_PI / 2)};
+      }));
 
   // Equality constraint on the final state (velocities are zero).
-  problem_.equality_constraints.emplace_back(new mini_opt::Residual<2, 2>(
+  problem_.equality_constraints.push_back(mini_opt::MakeResidual<2, 2>(
       {MapKey<state_dim>(KeyType::B_X_DOT, num_states - 1, num_states),
        MapKey<state_dim>(KeyType::THETA_1_DOT, num_states - 1, num_states)},
       [](const Eigen::Vector2d& vars, Eigen::Matrix<double, 2, 2>* J_out) -> Eigen::Vector2d {
@@ -245,8 +237,8 @@ void Optimization::BuildProblem(const SingleCartPoleState& current_state,
       }
       return Eigen::Matrix<double, 1, 1>{(u[0] - u[1]) * weight};
     };
-    problem_.costs.emplace_back(
-        new mini_opt::Residual<1, 2>({MapKey<state_dim>(KeyType::U, k, num_states),
+    problem_.costs.push_back(
+        mini_opt::MakeResidual<1, 2>({MapKey<state_dim>(KeyType::U, k, num_states),
                                       MapKey<state_dim>(KeyType::U, k + 1, num_states)},
                                      cost));
   }
@@ -265,12 +257,12 @@ void Optimization::BuildProblem(const SingleCartPoleState& current_state,
     }
     return Eigen::Matrix<double, 1, 1>{(u[0] - u_prev) * u_initial_weight};
   };
-  problem_.costs.emplace_back(new mini_opt::Residual<1, 1>(
+  problem_.costs.push_back(mini_opt::MakeResidual<1, 1>(
       {MapKey<state_dim>(KeyType::U, 0, num_states)}, cost_initial_control));
 
   // Quadratic penalty on the final position, drive the cart back to the center:
   const double b_x_final_weight = params_.b_x_final_penalty;
-  problem_.costs.emplace_back(new mini_opt::Residual<1, 1>(
+  problem_.costs.push_back(mini_opt::MakeResidual<1, 1>(
       {MapKey<state_dim>(KeyType::B_X, num_states - 1, num_states)},
       [b_x_final_weight](const Eigen::Matrix<double, 1, 1>& vars,
                          Eigen::Matrix<double, 1, 1>* J_out) -> Eigen::Matrix<double, 1, 1> {
@@ -290,8 +282,8 @@ void Optimization::BuildProblem(const SingleCartPoleState& current_state,
       }
       return Eigen::Matrix<double, 1, 1>{u[0] * u_penalty};
     };
-    problem_.costs.emplace_back(
-        new mini_opt::Residual<1, 1>({MapKey<state_dim>(KeyType::U, k, num_states)}, cost));
+    problem_.costs.push_back(
+        mini_opt::MakeResidual<1, 1>({MapKey<state_dim>(KeyType::U, k, num_states)}, cost));
   }
 
   if (solver_) {
