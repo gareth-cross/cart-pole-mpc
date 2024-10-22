@@ -1,5 +1,5 @@
+// Copyright (c) 2024 Gareth Cross.
 // Wrapper code for our pendulum dynamics model.
-// Copyright 2024 Gareth Cross.
 #include <algorithm>
 #include <chrono>
 #include <execution>
