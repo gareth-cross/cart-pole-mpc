@@ -1,4 +1,4 @@
-// Copyright 2024 Gareth Cross.
+// Copyright (c) 2024 Gareth Cross.
 // WASM module for interacting with the controller.
 #include <emscripten/bind.h>
 #include <emscripten/val.h>

@@ -3,8 +3,8 @@
 #include <Eigen/Core>
 
 #include <mini_opt/nonlinear.hpp>
+#include <mini_opt/structs.hpp>
 
-#include "mini_opt/structs.hpp"
 #include "structs.hpp"
 
 namespace pendulum {
