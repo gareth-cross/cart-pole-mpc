@@ -64,6 +64,7 @@ export class Renderer {
   public drawSingle(
     state: SingleCartPoleState,
     dynamicsParams: SingleCartPoleParams,
+    predictedStates: Array<SingleCartPoleState>,
     interaction: MouseInteraction | null
   ) {
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -71,16 +72,12 @@ export class Renderer {
     // Get transformation from metric to pixels.
     const pixelFromMetric = this.getPixelFromMetricTransform();
 
-    this.context.save();
-
-    // Draw the pendulum base:
-    const [base, mass] = massLocationsFromState(state, dynamicsParams);
-
     const cartHeightMeters = 0.2;
     const floorYMeters = -cartHeightMeters * 0.5;
     const floorY = pixelFromMetric.transform({ x: 0, y: floorYMeters }).y;
 
     // Draw the horizontal axis:
+    this.context.save();
     this.context.lineCap = 'butt';
     this.context.lineJoin = 'round';
     this.context.strokeStyle = '#FBA108';
@@ -89,8 +86,28 @@ export class Renderer {
     this.context.moveTo(0.0, floorY);
     this.context.lineTo(this.canvas.width, floorY);
     this.context.stroke();
+    this.context.restore();
+
+    // Draw the predicted states:
+    const drawGhosts = true;
+    if (drawGhosts) {
+      const predictedStateStep = 10;
+      for (var i = 0; i < predictedStates.length; i += predictedStateStep) {
+        this.drawCart(
+          predictedStates[i],
+          dynamicsParams,
+          pixelFromMetric,
+          cartHeightMeters,
+          1.0 - (i + 0.5) / predictedStates.length
+        );
+      }
+    }
+
+    // Draw the cart at the current state:
+    this.drawCart(state, dynamicsParams, pixelFromMetric, cartHeightMeters, 1.0);
 
     // Some lines to give the floor a bit of contrast:
+    this.context.save();
     const numFloorLines = 20;
     for (var i = 0; i < numFloorLines; ++i) {
       const x =
@@ -115,6 +132,31 @@ export class Renderer {
       this.context.stroke();
       this.context.setLineDash([]);
     }
+    this.context.restore();
+
+    if (interaction != null) {
+      const [base, mass] = massLocationsFromState(state, dynamicsParams);
+      const baseScaled = pixelFromMetric.transform(base);
+      const massScaled = pixelFromMetric.transform(mass);
+      const locations = [baseScaled, massScaled];
+      this.drawMouseIndicator(
+        locations[interaction.massIndex],
+        interaction.incidentAngle,
+        interaction.clicked
+      );
+    }
+  }
+
+  // Draw the cart at the provided `state`.
+  private drawCart(
+    state: SingleCartPoleState,
+    dynamicsParams: SingleCartPoleParams,
+    pixelFromMetric: ScaleAndTranslate,
+    cartHeightMeters: number,
+    alpha: number
+  ) {
+    // Draw the pendulum base:
+    const [base, mass] = massLocationsFromState(state, dynamicsParams);
 
     // Draw the cart body:
     const bodyPts = [
@@ -134,6 +176,18 @@ export class Renderer {
       { x: 0, y: 6 }
     ];
 
+    // Draw outline of the body (in clockwise order).
+    const drawBodyTrace = () => {
+      bodyPts.forEach((p: Point, index: number) => {
+        const q = pixelFromMetric.transform(worldFromCart.transform(p));
+        if (index == 0) {
+          this.context.moveTo(q.x, q.y);
+        } else {
+          this.context.lineTo(q.x, q.y);
+        }
+      });
+    };
+
     const wheelPositions = [
       { x: 3, y: 2 },
       { x: 9, y: 2 }
@@ -148,50 +202,72 @@ export class Renderer {
     );
 
     // Draw wheels first
+    this.context.save();
+
+    if (alpha < 1.0) {
+      this.context.save();
+      this.context.beginPath();
+      this.context.rect(0, 0, this.canvas.width, this.canvas.height);
+      drawBodyTrace();
+      this.context.clip();
+    }
+
     wheelPositions.forEach((p) => {
       const q = pixelFromMetric.transform(worldFromCart.transform(p));
       this.context.beginPath();
       this.context.arc(q.x, q.y, pixelFromMetric.sx * 0.05, 0, 2 * Math.PI, false);
-      this.context.fillStyle = '#525252';
+      this.context.fillStyle = `rgba(82, 82, 82, ${alpha})`;
       this.context.fill();
-      this.context.strokeStyle = '#e5e5e5';
+      this.context.strokeStyle = `rgba(229, 229, 229, ${alpha})`;
       this.context.lineWidth = 2;
       this.context.stroke();
     });
 
+    if (alpha < 1.0) {
+      this.context.restore();
+    }
+
     // Then body
-    this.context.save();
-    this.context.fillStyle = '#0f766e';
-    this.context.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    this.context.fillStyle = `rgba(15, 118, 110, ${alpha})`;
+    this.context.shadowColor = `rgba(0, 0, 0, ${alpha < 1.0 ? 0.0 : 0.5})`;
     this.context.shadowBlur = 5;
     this.context.shadowOffsetX = 0;
     this.context.shadowOffsetY = 0;
     this.context.beginPath();
-    bodyPts.forEach((p, index) => {
-      const q = pixelFromMetric.transform(worldFromCart.transform(p));
-      if (index == 0) {
-        this.context.moveTo(q.x, q.y);
-      } else {
-        this.context.lineTo(q.x, q.y);
-      }
-    });
+    drawBodyTrace();
     this.context.fill();
     this.context.restore();
 
     const baseScaled = pixelFromMetric.transform(base);
     const massScaled = pixelFromMetric.transform(mass);
 
+    const pointRadiusPixels = pixelFromMetric.sx * 0.03;
+
+    // Clipping mask on the mass to clip the arm when alpha blending.
+    // A bit lazy, we could just truncate the arm.
+    if (alpha < 1.0) {
+      this.context.save();
+      this.context.beginPath();
+      this.context.rect(0, 0, this.canvas.width, this.canvas.height);
+      this.context.arc(massScaled.x, massScaled.y, pointRadiusPixels, 0, 2 * Math.PI, true);
+      this.context.clip();
+    }
+
     // Draw the arm:
+    this.context.strokeStyle = `rgba(229, 229, 229, ${alpha})`;
     this.context.lineWidth = 3;
     this.context.lineCap = 'round';
     this.context.beginPath();
     this.context.moveTo(baseScaled.x, baseScaled.y);
     this.context.lineTo(massScaled.x, massScaled.y);
     this.context.stroke();
+    if (alpha < 1.0) {
+      this.context.restore(); // Pop the clipping mask.
+    }
 
     // Draw the point mass:
-    const pointRadiusPixels = pixelFromMetric.sx * 0.03;
-    this.context.fillStyle = '#C3391B';
+    this.context.fillStyle = `rgba(195, 57, 27, ${alpha})`;
+    this.context.strokeStyle = `rgba(229, 229, 229, ${alpha})`;
     this.context.beginPath();
     this.context.arc(massScaled.x, massScaled.y, pointRadiusPixels, 0, 2 * Math.PI, false);
     this.context.fill();
@@ -199,15 +275,6 @@ export class Renderer {
     this.context.stroke();
 
     this.context.restore();
-
-    if (interaction != null) {
-      const locations = [baseScaled, massScaled];
-      this.drawMouseIndicator(
-        locations[interaction.massIndex],
-        interaction.incidentAngle,
-        interaction.clicked
-      );
-    }
   }
 
   // Draw an arrow to indicate the mouse location and direction of force that will be applied.
