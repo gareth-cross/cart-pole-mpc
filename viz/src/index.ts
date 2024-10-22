@@ -25,6 +25,9 @@ class Application {
   // The set-point for the cart location.
   private cartSetPoint: number = 0.0;
 
+  // Predicted states from the MPC at the last timestep.
+  private predictedStates: Array<SingleCartPoleState> = [];
+
   // Timing control:
   private previousTime: DOMHighResTimeStamp | null = null;
   private accumulatedTime: number = 0.0;
@@ -289,7 +292,7 @@ class Application {
     const controlDt = 0.01;
     this.accumulatedTime += durationInSeconds * this.simRate;
     while (this.accumulatedTime >= controlDt) {
-      this.stepControlAndSim(controlDt);
+      this.predictedStates = this.stepControlAndSim(controlDt);
       this.decayExternalForces(controlDt);
       this.accumulatedTime -= controlDt;
     }
@@ -302,7 +305,12 @@ class Application {
     );
     this.addExternalForce(interaction);
 
-    this.renderer.drawSingle(currentState, this.dynamicsParams, interaction);
+    this.renderer.drawSingle(
+      currentState,
+      this.dynamicsParams,
+      this.controlEnabled ? this.predictedStates : [],
+      interaction
+    );
     this.controlPlotter.draw();
     this.anglePlotter.draw();
     this.speedPlotter.draw();
@@ -312,7 +320,7 @@ class Application {
   }
 
   // Run the MPC and simulator.
-  private stepControlAndSim(dt: number) {
+  private stepControlAndSim(dt: number): Array<SingleCartPoleState> {
     // Run the model predictive controller.
     const currentState = this.simulator.getState() as SingleCartPoleState;
     const outputs = this.optimizer.step(currentState, this.dynamicsParams, this.cartSetPoint);
@@ -337,8 +345,15 @@ class Application {
 
     this.updatePlots(currentTime, currentState, outputs);
 
+    // Get the predicted states out:
+    var predictedStates: Array<SingleCartPoleState> = [];
+    for (var i = 0; i < outputs.windowLength(); ++i) {
+      predictedStates.push(outputs.getPredictedState(i));
+    }
+
     // We need to manually clean up C++ objects allocated via embind.
     outputs.delete();
+    return predictedStates;
   }
 
   // Apply exponential decay to the external forces (applied by user clicking).
