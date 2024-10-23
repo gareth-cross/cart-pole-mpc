@@ -15,7 +15,9 @@ export class Renderer {
   private viewportWidthMeters: number;
 
   constructor() {
-    const canvas: HTMLCanvasElement = document.getElementById('canvas') as HTMLCanvasElement;
+    const canvas: HTMLCanvasElement = document.getElementById(
+      'cartPoleCanvas'
+    ) as HTMLCanvasElement;
     const context: CanvasRenderingContext2D = canvas.getContext('2d');
 
     this.canvas = canvas;

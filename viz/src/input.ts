@@ -28,7 +28,9 @@ export class MouseHandler {
   private activeIndex: number | null = null;
 
   constructor() {
-    const canvas: HTMLCanvasElement = document.getElementById('canvas') as HTMLCanvasElement;
+    const canvas: HTMLCanvasElement = document.getElementById(
+      'cartPoleCanvas'
+    ) as HTMLCanvasElement;
     this.canvas = canvas;
 
     canvas.addEventListener('mouseenter', (e) => this.mouseEnter(e));

@@ -3,11 +3,17 @@ import { saveAs } from 'file-saver';
 
 import './styles.css';
 
-import { MainModule, Simulator, Optimization, OptimizationOutputs } from './optimization-wasm';
+import OptimizationWasm, {
+  MainModule,
+  Simulator,
+  Optimization,
+  OptimizationOutputs
+} from './optimization-wasm';
 import { Renderer } from './renderer';
 import { Range, Plotter } from './plotter';
 import { MouseHandler, MouseInteraction } from './input';
 import { Point, SingleCartPoleState, SingleCartPoleParams, OptimizationParams } from './interfaces';
+import { getUiHtml } from './ui';
 
 class Application {
   private wasm: MainModule;
@@ -426,13 +432,21 @@ class Application {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  import(/* webpackChunkName: "wasm-module" */ './optimization-wasm').then((mod) => {
-    console.log('Loaded WASM JS file.');
-    mod.default().then((mainModule: MainModule) => {
-      const app = new Application(mainModule);
-      // Start the animation loop:
-      app.requestFrame();
-    });
+// Main entry-point of the application.
+// This should be called from: document.addEventListener('DOMContentLoaded', () => {...});
+export function loadApplication(parentElementId: string) {
+  // Insert HTML into the page:
+  const parent = document.getElementById(parentElementId);
+  if (parent) {
+    parent.innerHTML = getUiHtml() as string;
+  } else {
+    console.error(`Could not find element: ${parent}`);
+    return;
+  }
+  OptimizationWasm().then((mod: MainModule) => {
+    const app = new Application(mod);
+    // Start the animation loop:
+    console.log('Starting WASM application.');
+    app.requestFrame();
   });
-});
+}
