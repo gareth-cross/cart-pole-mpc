@@ -3,11 +3,7 @@
 @tailwind components;
 @tailwind utilities;
 
-#body {
-  background-color: #13171f;
-}
-
-#canvas {
+#cartPoleCanvas {
   aspect-ratio: 16 / 9;
   user-select: none;
   -webkit-user-select: none;
@@ -17,7 +13,7 @@
   -ms-user-select: none;
 }
 
-#canvasDiv {
+#cartPoleCanvasDiv {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   -khtml-user-select: none;

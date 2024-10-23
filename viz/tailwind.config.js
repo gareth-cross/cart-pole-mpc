@@ -1,5 +1,5 @@
 module.exports = {
-    content: ['./dist/*.html'],
+    content: ['./src/*.html'],
     theme: {
         extend: {},
     },
@@ -9,5 +9,5 @@ module.exports = {
     plugins: [],
     safelist: [
         'text-slate-100', 'w-full', 'h-full', 'pr-2', 'pt-1'
-    ]
+    ],
 }

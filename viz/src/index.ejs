@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Cart-pole Viz</title>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <style>
+        #body {
+          background-color: #13171f;
+        }
+    </style>
+  </head>
+  <body id="body">
+    <script>
+      // The library is loaded by the script tag below.
+      // Once the module loads, we invoke loadApplication from application.ts.
+      function startApp() {
+        CartPoleLibrary.loadApplication('body');
+      }
+    </script>
+    <% for (key in htmlWebpackPlugin.files.js) { %>
+    <script
+      type="text/javascript"
+      src="<%= htmlWebpackPlugin.files.js[key] %>"
+      onload="startApp();"
+      ></script><% } %>
+  </body>
+</html>

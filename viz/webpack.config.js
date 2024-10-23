@@ -7,7 +7,7 @@ module.exports = {
         ignored: '**/node_modules',
     },
     entry: {
-        index: './src/index.ts',
+        application: './src/application.ts',
     },
     devtool: 'inline-source-map',
     module: {
@@ -36,11 +36,18 @@ module.exports = {
                 include: path.resolve(__dirname, 'src'),
                 use: ['style-loader', 'css-loader', 'postcss-loader'],
             },
+            {
+                test: /\.html$/i,
+                use: ['html-loader'],
+            }
         ],
     },
     plugins: [
         new HtmlWebpackPlugin({
-            template: './src/index.html'
+            template: './src/index.ejs',
+            filename: 'index.html',
+            inject: false,
+            minify: false,
         }),
     ],
     resolve: {
@@ -50,6 +57,11 @@ module.exports = {
         filename: '[name].[contenthash].js',
         path: path.resolve(__dirname, 'dist'),
         clean: true,
+        library: {
+            name: 'CartPoleLibrary',
+            type: 'var'
+        },
+        chunkFormat: 'commonjs',
     },
     devServer: {
         static: {
