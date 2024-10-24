@@ -1,6 +1,4 @@
-/* Import tailwind CSS. */
 @tailwind base;
-@tailwind components;
 @tailwind utilities;
 
 #cartPoleCanvas {
@@ -23,35 +21,35 @@
 }
 
 .plotters {
-  aspect-ratio: 2.0;
+  aspect-ratio: 2;
 }
 
-input.custom-checkbox[type="checkbox"] {
-	accent-color: #024b7e;
+input.custom-checkbox[type='checkbox'] {
+  accent-color: #024b7e;
 }
 
-input.custom-slider[type="range"] {
+input.custom-slider[type='range'] {
   -webkit-appearance: none;
   appearance: none;
   background: transparent;
   cursor: pointer;
 }
 
-input.custom-slider[type="range"]::-webkit-slider-runnable-track {
+input.custom-slider[type='range']::-webkit-slider-runnable-track {
   background: #024b7e;
   height: 0.5rem;
   border-radius: 15px;
-  box-shadow: inset 0px 0px 1px 0px rgba(0, 0, 0, 0.50);
+  box-shadow: inset 0px 0px 1px 0px rgba(0, 0, 0, 0.5);
 }
 
-input.custom-slider[type="range"]::-moz-range-track {
+input.custom-slider[type='range']::-moz-range-track {
   background: #053a5f;
   height: 0.5rem;
   border-radius: 15px;
-  box-shadow: inset 0px 0px 1px 0px rgba(0, 0, 0, 0.50);
+  box-shadow: inset 0px 0px 1px 0px rgba(0, 0, 0, 0.5);
 }
 
-input.custom-slider[type="range"]::-webkit-slider-thumb {
+input.custom-slider[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   margin-top: -4px;
@@ -60,11 +58,11 @@ input.custom-slider[type="range"]::-webkit-slider-thumb {
   width: 20px;
   border-radius: 20px;
   border: 2px solid white;
-  box-shadow: 0px 0px 4px 0px rgba(0, 0, 0, 0.50);
+  box-shadow: 0px 0px 4px 0px rgba(0, 0, 0, 0.5);
   transform: translateY(-2px);
 }
 
-input.custom-slider[type="range"]::-moz-range-thumb {
+input.custom-slider[type='range']::-moz-range-thumb {
   border: none;
   border-radius: 0;
   background-color: #053a5f;
@@ -72,7 +70,7 @@ input.custom-slider[type="range"]::-moz-range-thumb {
   width: 20px;
   border-radius: 20px;
   border: 2px solid white;
-  box-shadow: 0px 0px 4px 0px rgba(0, 0, 0, 0.50);
+  box-shadow: 0px 0px 4px 0px rgba(0, 0, 0, 0.5);
 }
 
 /* Custom button style. */

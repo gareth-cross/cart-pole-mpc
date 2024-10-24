@@ -1,18 +1,21 @@
-<div class="grid grid-cols-1 md:grid-cols-2 m-2 gap-2 max-w-screen-lg">
+<div class="grid grid-cols-1 sm:grid-cols-2 m-2 gap-2 max-w-screen-lg">
   <!-- First column (on desktop) -->
   <div class="flex flex-col space-y-2">
     <!-- The main canvas where the sim is rendered. -->
     <div
       id="cartPoleCanvasDiv"
-      class="rounded-xl overflow-hidden bg-slate-800 border-solid border-2 border-sky-500 shadow-inner"
+      class="rounded-xl overflow-hidden bg-slate-800 border-solid border-2 border-sky-500 shadow-inner relative"
     >
       <canvas id="cartPoleCanvas" class="w-full touch-none"> </canvas>
+      <div class="text-slate-100 absolute left-2 bottom-1 text-slate-300">
+        1. Press and hold to apply external force.</br> 2. Adjust the cart set-point below to translate laterally.
+      </div>
     </div>
     <!-- A panel with controls: -->
     <div class="rounded-xl bg-slate-800 overflow-auto px-4 py-2">
       <table
         id="controlTable"
-        class="w-full border-collapse border-slate-500 text-xs sm:text-base text-slate-300"
+        class="w-full border-collapse border-slate-500 text-xs lg:text-base text-slate-300"
       >
         <tr>
           <td class="w-auto whitespace-nowrap font-semibold text-right py-2 pr-4">Parameters:</td>
