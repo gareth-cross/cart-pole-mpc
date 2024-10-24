@@ -1,12 +1,7 @@
-// Copyright 2024 Gareth Cross.
-import {
-  massLocationsFromState,
-  Point,
-  ScaleAndTranslate,
-  SingleCartPoleState,
-  SingleCartPoleParams
-} from './interfaces';
+// Copyright (c) 2024 Gareth Cross.
+import { Point, SingleCartPoleState, SingleCartPoleParams } from './interfaces';
 import { MouseInteraction } from './input';
+import { massLocationsFromState, ScaleAndTranslate } from './utils';
 
 // A canvas renderer for our pendulum simulator.
 export class Renderer {
