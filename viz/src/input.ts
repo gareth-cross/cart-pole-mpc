@@ -1,12 +1,6 @@
-// Copyright 2024 Gareth Cross.
-import {
-  massLocationsFromState,
-  Point,
-  ScaleAndTranslate,
-  SingleCartPoleState,
-  SingleCartPoleParams,
-  indexOfSmallest
-} from './interfaces';
+// Copyright (c) 2024 Gareth Cross.
+import { Point, SingleCartPoleState, SingleCartPoleParams } from './interfaces';
+import { indexOfSmallest, massLocationsFromState, ScaleAndTranslate } from './utils';
 
 export class MouseInteraction {
   public massIndex: number;

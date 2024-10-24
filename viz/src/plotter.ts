@@ -1,5 +1,6 @@
-// Copyright 2024 Gareth Cross.
-import { ScaleAndTranslate, Point } from './interfaces';
+// Copyright (c) 2024 Gareth Cross.
+import { Point } from './interfaces';
+import { ScaleAndTranslate } from './utils';
 
 export class Range {
   public min: number;
