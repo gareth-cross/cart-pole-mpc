@@ -19,7 +19,6 @@ Optimization::Optimization(const OptimizationParams& params) : params_(params) {
   F_ASSERT_GE(params.max_iterations, 1);
   F_ASSERT_GE(params.u_cost_weight, 0.0);
   F_ASSERT_GE(params.u_derivative_cost_weight, 0.0);
-  F_ASSERT_GE(params.b_x_final_cost_weight, 0.0);
 }
 
 // Map a key to its position in our internal state vector.
@@ -232,14 +231,40 @@ void Optimization::BuildProblem(const SingleCartPoleState& current_state,
         MakeScalarCost<4>(static_cast<KeyType>(i), 0, num_states, x_current[i], 1.0));
   }
 
-  problem_.equality_constraints.push_back(
-      MakeScalarCost<4>(KeyType::THETA_1, final_state_index, num_states, M_PI / 2, 1.0));
+  // Quadratic costs on the final states.
+  // If these are negative, we add them to the equality constraints instead.
+  if (params_.b_x_final_cost_weight >= 0.0) {
+    problem_.costs.push_back(MakeScalarCost<4>(KeyType::B_X, final_state_index, num_states,
+                                               b_x_set_point, params_.b_x_final_cost_weight));
+  } else {
+    problem_.equality_constraints.push_back(
+        MakeScalarCost<4>(KeyType::B_X, final_state_index, num_states, b_x_set_point, 1.0));
+  }
+
+  if (params_.th_final_cost_weight >= 0.0) {
+    problem_.costs.push_back(MakeScalarCost<4>(KeyType::THETA_1, final_state_index, num_states,
+                                               M_PI / 2, params_.th_final_cost_weight));
+  } else {
+    problem_.equality_constraints.push_back(
+        MakeScalarCost<4>(KeyType::THETA_1, final_state_index, num_states, M_PI / 2, 1.0));
+  }
+
+  if (params_.b_x_dot_final_cost_weight >= 0.0) {
+    problem_.costs.push_back(MakeScalarCost<4>(KeyType::B_X_DOT, final_state_index, num_states, 0.0,
+                                               params_.b_x_dot_final_cost_weight));
+  } else {
+    problem_.equality_constraints.push_back(
+        MakeScalarCost<4>(KeyType::B_X_DOT, final_state_index, num_states, 0.0, 1.0));
+  }
 
   // Equality constraint on the final state (velocities are zero).
-  problem_.equality_constraints.push_back(
-      MakeScalarCost<4>(KeyType::B_X_DOT, final_state_index, num_states, 0.0, 1.0));
-  problem_.equality_constraints.push_back(
-      MakeScalarCost<4>(KeyType::THETA_1_DOT, final_state_index, num_states, 0.0, 1.0));
+  if (params_.th_dot_final_cost_weight >= 0.0) {
+    problem_.costs.push_back(MakeScalarCost<4>(KeyType::THETA_1_DOT, final_state_index, num_states,
+                                               0.0, params_.th_dot_final_cost_weight));
+  } else {
+    problem_.equality_constraints.push_back(
+        MakeScalarCost<4>(KeyType::THETA_1_DOT, final_state_index, num_states, 0.0, 1.0));
+  }
 
   // Quadratic penalty on the derivative of control inputs:
   if (params_.u_derivative_cost_weight > 0.0) {
@@ -264,24 +289,8 @@ void Optimization::BuildProblem(const SingleCartPoleState& current_state,
     const double u_prev = previous_solution_.rows() > 0
                               ? previous_solution_[MapKey<4>(KeyType::U, 0, num_states)]
                               : 0.0;
-    const double u_initial_weight = params_.u_derivative_cost_weight;
-    auto cost_initial_control =
-        [u_prev, u_initial_weight](
-            const Eigen::Matrix<double, 1, 1>& u,
-            Eigen::Matrix<double, 1, 1>* const J_out) -> Eigen::Matrix<double, 1, 1> {
-      if (J_out) {
-        J_out->operator()(0, 0) = u_initial_weight;
-      }
-      return Eigen::Matrix<double, 1, 1>{(u[0] - u_prev) * u_initial_weight};
-    };
-    problem_.costs.push_back(mini_opt::MakeResidual<1, 1>(
-        {MapKey<state_dim>(KeyType::U, 0, num_states)}, cost_initial_control));
-  }
-
-  // Quadratic penalty on the final position, drive the cart back to the center:
-  if (params_.b_x_final_cost_weight > 0.0) {
-    problem_.costs.push_back(MakeScalarCost<4>(KeyType::B_X, final_state_index, num_states,
-                                               b_x_set_point, params_.b_x_final_cost_weight));
+    problem_.costs.push_back(
+        MakeScalarCost<4>(KeyType::U, 0, num_states, u_prev, params_.u_derivative_cost_weight));
   }
 
   if (params_.u_cost_weight > 0.0) {

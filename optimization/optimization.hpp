@@ -36,13 +36,13 @@ struct OptimizationParams {
   // Amplitude of the sinusoid that we feed in as our initial guess.
   double u_guess_sinusoid_amplitude{10.0};
 
-  // Parameters on the quadratic weights in the optimization:
+  // Quadratic weights on the control inputs:
   double u_cost_weight{0.1};
   double u_derivative_cost_weight{0.1};
-  double b_x_final_cost_weight{150.0};
 
-  // Parameters on the quadratic weights of the final angle, and speeds.
-  // If these are negative, they become equality constraints.
+  // Quadratic weights of the final state.
+  // If these are negative, they become equality constraints instead.
+  double b_x_final_cost_weight{150.0};
   double th_final_cost_weight{-1.0};
   double b_x_dot_final_cost_weight{-1.0};
   double th_dot_final_cost_weight{-1.0};

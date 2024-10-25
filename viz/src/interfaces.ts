@@ -39,4 +39,7 @@ export interface OptimizationParams {
   u_cost_weight: number;
   u_derivative_cost_weight: number;
   b_x_final_cost_weight: number;
+  th_final_cost_weight: number;
+  b_x_dot_final_cost_weight: number;
+  th_dot_final_cost_weight: number;
 }

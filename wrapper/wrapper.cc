@@ -66,7 +66,10 @@ void wrap_everything(nb::module_& m) {
       .def_rw("u_guess_sinusoid_amplitude", &OptimizationParams::u_guess_sinusoid_amplitude)
       .def_rw("u_cost_weight", &OptimizationParams::u_cost_weight)
       .def_rw("u_derivative_cost_weight", &OptimizationParams::u_derivative_cost_weight)
-      .def_rw("b_x_final_cost_weight", &OptimizationParams::b_x_final_cost_weight);
+      .def_rw("b_x_final_cost_weight", &OptimizationParams::b_x_final_cost_weight)
+      .def_rw("th_final_cost_weight", &OptimizationParams::th_final_cost_weight)
+      .def_rw("b_x_dot_final_cost_weight", &OptimizationParams::b_x_dot_final_cost_weight)
+      .def_rw("th_dot_final_cost_weight", &OptimizationParams::th_dot_final_cost_weight);
 
   nb::class_<SingleCartPoleState>(m, "SingleCartPoleState")
       .def(nb::init<double, double, double, double>())
