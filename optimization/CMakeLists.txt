@@ -25,7 +25,7 @@ if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug" AND NOT MSVC)
 endif()
 
 if(MSVC)
-  target_compile_definitions(${MODULE_NAME} PRIVATE -D_USE_MATH_DEFINES)
+  target_compile_definitions(${MODULE_NAME} PUBLIC -D_USE_MATH_DEFINES)
 endif()
 
 # Enable wrenfold-span support
