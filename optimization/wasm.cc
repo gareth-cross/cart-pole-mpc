@@ -22,8 +22,8 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(SingleCartPoleParams, m_b, m_1, l_1, g, mu_b,
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Vector2, x, y);
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(OptimizationParams, control_dt, window_length, state_spacing,
                                    max_iterations, relative_exit_tol, absolute_first_derivative_tol,
-                                   equality_penalty_initial, u_guess_sinusoid_amplitude, u_penalty,
-                                   u_derivative_penalty, b_x_final_penalty);
+                                   equality_penalty_initial, u_guess_sinusoid_amplitude, u_cost_weight,
+                                   u_derivative_cost_weight, b_x_final_cost_weight);
 
 // Encode to JSON, then decode in JavaScript.
 template <typename T>

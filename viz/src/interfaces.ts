@@ -36,7 +36,7 @@ export interface OptimizationParams {
   absolute_first_derivative_tol: number;
   equality_penalty_initial: number;
   u_guess_sinusoid_amplitude: number;
-  u_penalty: number;
-  u_derivative_penalty: number;
-  b_x_final_penalty: number;
+  u_cost_weight: number;
+  u_derivative_cost_weight: number;
+  b_x_final_cost_weight: number;
 }

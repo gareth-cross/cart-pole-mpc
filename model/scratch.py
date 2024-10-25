@@ -20,18 +20,18 @@ from pypendulum import (
 
 
 def main():
-    params = SingleCartPoleParams(1.0, 0.1, 0.25, 9.81)
-    x0_initial = SingleCartPoleState(0.0, -np.pi / 2, 0.0, 0.0)
+    params = SingleCartPoleParams(1.0, 0.1, 0.25, 9.81, 0.05, 0.1, 0.02, 0.8, 100.0)
+    x0_initial = SingleCartPoleState(0.0, 0.0, 0.0, 0.0)
 
     opt_params = OptimizationParams()
     opt_params.max_iterations = 30
     opt_params.state_spacing = 10
-    opt_params.window_length = 50
+    opt_params.window_length = 40
     opt_params.absolute_first_derivative_tol = 1.0e-3
     opt_params.u_guess_sinusoid_amplitude = 10.0
-    opt_params.u_derivative_penalty = 0.1
+    opt_params.u_derivative_cost_weight = 0.0
     opt = Optimization(opt_params)
-    outputs = opt.step(x0_initial, params)
+    outputs = opt.step(x0_initial, params, 0.0)
 
     print(outputs.solver_summary())
 

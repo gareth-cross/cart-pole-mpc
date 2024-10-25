@@ -7,7 +7,7 @@ namespace pendulum {
 // Types of variables that exist in our optimization problem.
 enum class KeyType : std::uint32_t {
   // Position of the base.
-  B_X,
+  B_X = 0,
   // Angle of the pole.
   THETA_1,
   // Velocity of the base.

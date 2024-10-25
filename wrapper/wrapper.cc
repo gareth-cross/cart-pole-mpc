@@ -32,6 +32,7 @@ END_THIRD_PARTY_INCLUDES
 #include <mini_opt/assertions.hpp>
 
 #include "optimization.hpp"
+#include "simulator.hpp"
 
 namespace nb = nanobind;
 namespace pendulum {
@@ -63,9 +64,9 @@ void wrap_everything(nb::module_& m) {
       .def_rw("absolute_first_derivative_tol", &OptimizationParams::absolute_first_derivative_tol)
       .def_rw("equality_penalty_initial", &OptimizationParams::equality_penalty_initial)
       .def_rw("u_guess_sinusoid_amplitude", &OptimizationParams::u_guess_sinusoid_amplitude)
-      .def_rw("u_penalty", &OptimizationParams::u_penalty)
-      .def_rw("u_derivative_penalty", &OptimizationParams::u_derivative_penalty)
-      .def_rw("b_x_final_penalty", &OptimizationParams::b_x_final_penalty);
+      .def_rw("u_cost_weight", &OptimizationParams::u_cost_weight)
+      .def_rw("u_derivative_cost_weight", &OptimizationParams::u_derivative_cost_weight)
+      .def_rw("b_x_final_cost_weight", &OptimizationParams::b_x_final_cost_weight);
 
   nb::class_<SingleCartPoleState>(m, "SingleCartPoleState")
       .def(nb::init<double, double, double, double>())
@@ -84,6 +85,13 @@ void wrap_everything(nb::module_& m) {
       .def(nb::init<const OptimizationParams&>())
       .def("step", &Optimization::Step)
       .def("set_previous_solution", &Optimization::SetPreviousSolution);
+
+  nb::class_<Vector2>(m, "Vector2").def(nb::init<double, double>());
+
+  nb::class_<Simulator>(m, "Simulator")
+      .def(nb::init<>())
+      .def("step", &Simulator::Step)
+      .def("get_state", &Simulator::GetState);
 }
 
 }  // namespace pendulum
