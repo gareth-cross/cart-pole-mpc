@@ -43,7 +43,7 @@ input.custom-slider[type='range']::-webkit-slider-runnable-track {
 }
 
 input.custom-slider[type='range']::-moz-range-track {
-  background: #053a5f;
+  background: #024b7e;
   height: 0.5rem;
   border-radius: 15px;
   box-shadow: inset 0px 0px 1px 0px rgba(0, 0, 0, 0.5);
@@ -71,6 +71,16 @@ input.custom-slider[type='range']::-moz-range-thumb {
   border-radius: 20px;
   border: 2px solid white;
   box-shadow: 0px 0px 4px 0px rgba(0, 0, 0, 0.5);
+}
+
+input[type='range']:disabled::-webkit-slider-thumb {
+  background-color: #1f2937;
+  border: 2px solid #4b5563;
+}
+
+input[type='range']:disabled::-moz-range-thumb {
+  background-color: #1f2937;
+  border: 2px solid #4b5563;
 }
 
 /* Custom button style. */
