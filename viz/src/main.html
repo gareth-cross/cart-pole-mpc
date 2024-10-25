@@ -8,15 +8,14 @@
     >
       <canvas id="cartPoleCanvas" class="w-full touch-none"> </canvas>
       <div class="text-slate-100 absolute left-2 bottom-1 text-slate-300">
-        1. Press and hold to apply external force.</br> 2. Adjust the cart set-point below to translate laterally.
+        1. Press and hold to apply external force.<br />
+        2. Adjust the cart set-point below to translate laterally.
       </div>
     </div>
     <!-- A panel with controls: -->
     <div class="rounded-xl bg-slate-800 overflow-auto px-4 py-2">
-      <table
-        id="controlTable"
-        class="w-full border-collapse border-slate-500 text-xs lg:text-base text-slate-300"
-      >
+      <!-- Sim controls. -->
+      <table class="w-full border-collapse border-slate-500 text-xs lg:text-base text-slate-300">
         <tr>
           <td class="w-auto whitespace-nowrap font-semibold text-right py-2 pr-4">Parameters:</td>
           <td class="w-full"></td>
@@ -150,34 +149,11 @@
             <input
               id="enableControllerCheckbox"
               type="checkbox"
-              class="accent-green-500 align-middle h-6 w-6 custom-checkbox"
+              class="align-middle h-6 w-6 custom-checkbox"
               checked
             />
           </td>
           <td class="w-auto whitespace-nowrap"></td>
-        </tr>
-        <!-- Cart Penalty -->
-        <tr>
-          <td class="w-auto whitespace-nowrap text-right py-2 pr-4">
-            <label for="cartPenaltySlider"
-              >Cart position (b<sub>x</sub>)<br />
-              penalty:</label
-            >
-          </td>
-          <td class="w-full pr-4">
-            <input
-              type="range"
-              class="slider align-middle w-full custom-slider"
-              id="cartPenaltySlider"
-            />
-          </td>
-          <td class="w-auto whitespace-nowrap">
-            <output
-              for="cartPenaltySlider"
-              id="cartPenaltySliderOutput"
-              class="text-center"
-            ></output>
-          </td>
         </tr>
         <!--
           <tr>
@@ -186,6 +162,117 @@
             <td class="w-auto whitespace-nowrap"></td>
           </tr>
           -->
+      </table>
+      <hr class="mt-2 mb-2 border-slate-500" />
+      <table
+        id="costTable"
+        class="w-full border-collapse border-slate-500 text-xs lg:text-base text-slate-300"
+      >
+        <tr>
+          <td class="w-auto whitespace-nowrap font-semibold text-right py-2 pr-4">Costs:</td>
+          <td class="w-auto whitespace-nowrap text-slate-400 text-center py-2 pr-4">
+            Tick the checkbox to switch<br />
+            to an equality constraint.
+          </td>
+          <td></td>
+          <td></td>
+        </tr>
+        <!-- b_x cost -->
+        <tr>
+          <td class="w-auto whitespace-nowrap text-right pr-4 py-2">
+            <label for="bxCostSlider">b<sub>x</sub></label>
+          </td>
+          <td class="w-full">
+            <input
+              type="range"
+              class="slider align-middle w-full custom-slider"
+              id="bxCostSlider"
+            />
+          </td>
+          <td class="w-auto pr-4 pl-4 whitespace-nowrap">
+            <output for="bxCostSlider" id="bxCostOutput" class="text-center"></output>
+          </td>
+          <td class="w-auto whitespace-nowrap">
+            <input
+              id="bxCostCheckbox"
+              type="checkbox"
+              class="align-middle h-6 w-6 custom-checkbox"
+              checked
+            />
+          </td>
+        </tr>
+        <!-- theta cost -->
+        <tr>
+          <td class="w-auto whitespace-nowrap text-right pr-4 py-2">
+            <label for="thetaCostSlider">θ</label>
+          </td>
+          <td class="w-full">
+            <input
+              type="range"
+              class="slider align-middle w-full custom-slider"
+              id="thetaCostSlider"
+            />
+          </td>
+          <td class="w-auto pr-4 pl-4 whitespace-nowrap">
+            <output for="thetaCostSlider" id="thetaCostOutput" class="text-center"></output>
+          </td>
+          <td class="w-auto whitespace-nowrap">
+            <input
+              id="thetaCostCheckbox"
+              type="checkbox"
+              class="align-middle h-6 w-6 custom-checkbox"
+              checked
+            />
+          </td>
+        </tr>
+        <!-- b_x dot cost -->
+        <tr>
+          <td class="w-auto whitespace-nowrap text-right pr-4 py-2">
+            <label for="bxDotCostSlider">d(b<sub>x</sub>)/dt</label>
+          </td>
+          <td class="w-full">
+            <input
+              type="range"
+              class="slider align-middle w-full custom-slider"
+              id="bxDotCostSlider"
+            />
+          </td>
+          <td class="w-auto pr-4 pl-4 whitespace-nowrap">
+            <output for="bxDotCostSlider" id="bxDotCostOutput" class="text-center"></output>
+          </td>
+          <td class="w-auto whitespace-nowrap">
+            <input
+              id="bxDotCostCheckbox"
+              type="checkbox"
+              class="align-middle h-6 w-6 custom-checkbox"
+              checked
+            />
+          </td>
+        </tr>
+        <!-- theta dot cost -->
+        <tr>
+          <td class="w-auto whitespace-nowrap text-right pr-4 py-2">
+            <label for="thetaDotCostSlider">dθ/dt</label>
+          </td>
+          <td class="w-full">
+            <input
+              type="range"
+              class="slider align-middle w-full custom-slider"
+              id="thetaDotCostSlider"
+            />
+          </td>
+          <td class="w-auto pr-4 pl-4 whitespace-nowrap">
+            <output for="thetaDotCostSlider" id="thetaDotCostOutput" class="text-center"></output>
+          </td>
+          <td class="w-auto whitespace-nowrap">
+            <input
+              id="thetaDotCostCheckbox"
+              type="checkbox"
+              class="align-middle h-6 w-6 custom-checkbox"
+              checked
+            />
+          </td>
+        </tr>
       </table>
       <!-- buttons, hidden for now... -->
       <div class="grid grid-cols-2 mt-2 mb-2 collapse hidden sm:visible">

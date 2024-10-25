@@ -15,6 +15,11 @@ import { MouseHandler, MouseInteraction } from './input';
 import { Point, SingleCartPoleState, SingleCartPoleParams, OptimizationParams } from './interfaces';
 import { getUiHtml } from './ui';
 
+interface ToggleableCost {
+  value: number;
+  equalityConstrained: boolean;
+}
+
 class Application {
   private wasm: MainModule;
   private dynamicsParams: SingleCartPoleParams;
@@ -164,6 +169,42 @@ class Application {
     });
   }
 
+  // Used to connect the sliders/checkboxes that control optimization costs.
+  private connectCostControlElement(
+    inputId: string,
+    min: number,
+    max: number,
+    step: number,
+    initial: ToggleableCost,
+    setter: (value: ToggleableCost) => void
+  ) {
+    const slider = document.getElementById(inputId + 'Slider') as HTMLInputElement;
+    const checkbox = document.getElementById(inputId + 'Checkbox') as HTMLInputElement;
+    const output = document.getElementById(inputId + 'Output') as HTMLOutputElement;
+    slider.min = min.toString();
+    slider.max = max.toString();
+    slider.step = step.toString();
+    slider.value = initial.value.toString();
+    output.innerHTML = initial.value.toFixed(2);
+    checkbox.checked = initial.equalityConstrained;
+    if (initial.equalityConstrained) {
+      slider.disabled = true;
+    }
+
+    // When either ui element changes, trigger the setter.
+    var state = initial;
+    checkbox.addEventListener('change', () => {
+      state.equalityConstrained = checkbox.checked;
+      slider.disabled = checkbox.checked;
+      setter(state);
+    });
+    slider.addEventListener('change', () => {
+      state.value = Math.min(Math.max(parseFloat(slider.value), min), max);
+      setter(state);
+      output.innerHTML = state.value.toFixed(2);
+    });
+  }
+
   private connectUi() {
     this.connectCheckbox('enableControllerCheckbox', (value) => {
       if (!this.controlEnabled && value) {
@@ -232,18 +273,72 @@ class Application {
       (value) => (this.cartSetPoint = value),
       'm'
     );
-    this.connectSliderElement(
-      'cartPenaltySlider',
+
+    // Connect up the controls up the optimization costs.
+    // The state management is a little gross here. There is probably a cleaner way to write this.
+    this.connectCostControlElement(
+      'bxCost',
       0.0,
       200.0,
       1.0,
-      this.optimizationParams.b_x_final_cost_weight,
-      (value) => {
-        this.optimizationParams.b_x_final_cost_weight = value;
-        this.updatedOptimizationParams();
+      {
+        value: 150.0,
+        equalityConstrained: this.optimizationParams.b_x_final_cost_weight < 0.0
       },
-      undefined,
-      'change'
+      (value: ToggleableCost) => {
+        this.optimizationParams.b_x_final_cost_weight = value.equalityConstrained
+          ? -1.0
+          : value.value;
+        this.updatedOptimizationParams();
+      }
+    );
+    this.connectCostControlElement(
+      'thetaCost',
+      0.0,
+      200.0,
+      1.0,
+      {
+        value: 100.0,
+        equalityConstrained: this.optimizationParams.th_final_cost_weight < 0.0
+      },
+      (value: ToggleableCost) => {
+        this.optimizationParams.th_final_cost_weight = value.equalityConstrained
+          ? -1.0
+          : value.value;
+        this.updatedOptimizationParams();
+      }
+    );
+    this.connectCostControlElement(
+      'bxDotCost',
+      0.0,
+      200.0,
+      1.0,
+      {
+        value: 100.0,
+        equalityConstrained: this.optimizationParams.b_x_dot_final_cost_weight < 0.0
+      },
+      (value: ToggleableCost) => {
+        this.optimizationParams.b_x_dot_final_cost_weight = value.equalityConstrained
+          ? -1.0
+          : value.value;
+        this.updatedOptimizationParams();
+      }
+    );
+    this.connectCostControlElement(
+      'thetaDotCost',
+      0.0,
+      200.0,
+      1.0,
+      {
+        value: 100.0,
+        equalityConstrained: this.optimizationParams.th_dot_final_cost_weight < 0.0
+      },
+      (value: ToggleableCost) => {
+        this.optimizationParams.th_dot_final_cost_weight = value.equalityConstrained
+          ? -1.0
+          : value.value;
+        this.updatedOptimizationParams();
+      }
     );
 
     const saveLogButton = document.getElementById('saveLogButton') as HTMLButtonElement;
@@ -274,6 +369,7 @@ class Application {
     if (this.optimizer) {
       this.optimizer.delete();
     }
+    console.log(JSON.stringify(this.optimizationParams));
     this.optimizer = new this.wasm.Optimization(this.optimizationParams);
   }
 
