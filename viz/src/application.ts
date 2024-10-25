@@ -237,9 +237,9 @@ class Application {
       0.0,
       200.0,
       1.0,
-      this.optimizationParams.b_x_final_penalty,
+      this.optimizationParams.b_x_final_cost_weight,
       (value) => {
-        this.optimizationParams.b_x_final_penalty = value;
+        this.optimizationParams.b_x_final_cost_weight = value;
         this.updatedOptimizationParams();
       },
       undefined,

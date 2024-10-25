@@ -17,9 +17,9 @@ Optimization::Optimization(const OptimizationParams& params) : params_(params) {
               "state_spacing ({}) must divide into window_Length ({}) cleanly",
               params.state_spacing, params.window_length);
   F_ASSERT_GE(params.max_iterations, 1);
-  F_ASSERT_GE(params.u_penalty, 0.0);
-  F_ASSERT_GE(params.u_derivative_penalty, 0.0);
-  F_ASSERT_GE(params.b_x_final_penalty, 0.0);
+  F_ASSERT_GE(params.u_cost_weight, 0.0);
+  F_ASSERT_GE(params.u_derivative_cost_weight, 0.0);
+  F_ASSERT_GE(params.b_x_final_cost_weight, 0.0);
 }
 
 // Map a key to its position in our internal state vector.
@@ -160,11 +160,46 @@ auto CreateDynamicalConstraint(const SingleCartPoleParams params, const std::siz
   };
 }
 
+// Create a lambda that implements a cost on a scalar variable:
+//  (x - desired_value) * weight
+// This works out to a quadratic cost.
+template <bool ApplyModPi>
+auto MakeScalarCostLambda(double desired_value, double weight) {
+  return
+      [desired_value, weight](const Eigen::Matrix<double, 1, 1>& vars,
+                              Eigen::Matrix<double, 1, 1>* J_out) -> Eigen::Matrix<double, 1, 1> {
+        if (J_out) {
+          J_out->operator[](0) = weight;
+        }
+        if constexpr (ApplyModPi) {
+          // TODO: Define a manifold type so we can discard some of the mod_pi business.
+          return Eigen::Matrix<double, 1, 1>{mod_pi(vars[0] - desired_value) * weight};
+        } else {
+          return Eigen::Matrix<double, 1, 1>{(vars[0] - desired_value) * weight};
+        }
+      };
+}
+
+template <int StateDim>
+auto MakeScalarCost(const KeyType key_type, const std::size_t index, const std::size_t num_states,
+                    const double desired_value, const double weight) {
+  if (key_type == KeyType::THETA_1) {
+    return mini_opt::MakeResidual<1, 1>({MapKey<StateDim>(key_type, index, num_states)},
+                                        MakeScalarCostLambda<true>(desired_value, weight));
+  } else {
+    return mini_opt::MakeResidual<1, 1>({MapKey<StateDim>(key_type, index, num_states)},
+                                        MakeScalarCostLambda<false>(desired_value, weight));
+  }
+}
+
 void Optimization::BuildProblem(const SingleCartPoleState& current_state,
                                 const SingleCartPoleParams& dynamics_params,
                                 const double b_x_set_point) {
+  // TODO: Some of the logic here around state dimension is a bit gross/confusing. state_dim is
+  // meant to generalize to 6 to handle the double-pole case, but that is not implemented yet.
   static constexpr int state_dim = 4;
   const std::size_t num_states = params_.NumStates();
+  const std::size_t final_state_index = num_states - 1;
 
   problem_.clear();
   problem_.dimension =
@@ -192,101 +227,68 @@ void Optimization::BuildProblem(const SingleCartPoleState& current_state,
 
   // Equality constraint on the initial state:
   const auto x_current = current_state.ToVector();
-  problem_.equality_constraints.push_back(mini_opt::MakeResidual<4, 4>(
-      {MapKey<state_dim>(KeyType::B_X, 0, num_states),
-       MapKey<state_dim>(KeyType::THETA_1, 0, num_states),
-       MapKey<state_dim>(KeyType::B_X_DOT, 0, num_states),
-       MapKey<state_dim>(KeyType::THETA_1_DOT, 0, num_states)},
-      [x_current](const Eigen::Vector4d& vars,
-                  Eigen::Matrix<double, 4, 4>* J_out) -> Eigen::Vector4d {
-        if (J_out) {
-          J_out->setIdentity();
-        }
-        Eigen::Vector4d delta = vars - x_current;
-        delta[1] = mod_pi(delta[1]);
-        return delta;
-      }));
-
-  problem_.equality_constraints.push_back(mini_opt::MakeResidual<1, 1>(
-      {MapKey<state_dim>(KeyType::THETA_1, num_states - 1, num_states)},
-      [](const Eigen::Matrix<double, 1, 1>& vars,
-         Eigen::Matrix<double, 1, 1>* J_out) -> Eigen::Matrix<double, 1, 1> {
-        if (J_out) {
-          J_out->setIdentity();
-        }
-        return Eigen::Matrix<double, 1, 1>{mod_pi(vars[0] - M_PI / 2)};
-      }));
-
-  // Equality constraint on the final state (velocities are zero).
-  problem_.equality_constraints.push_back(mini_opt::MakeResidual<2, 2>(
-      {MapKey<state_dim>(KeyType::B_X_DOT, num_states - 1, num_states),
-       MapKey<state_dim>(KeyType::THETA_1_DOT, num_states - 1, num_states)},
-      [](const Eigen::Vector2d& vars, Eigen::Matrix<double, 2, 2>* J_out) -> Eigen::Vector2d {
-        if (J_out) {
-          J_out->setIdentity();
-        }
-        return {vars[0], vars[1]};
-      }));
-
-  // Quadratic penalty on the derivative of control inputs:
-  for (std::size_t k = 0; k + 1 < params_.window_length; ++k) {
-    const double weight = params_.u_derivative_penalty;
-    auto cost = [weight](const Eigen::Vector2d& u,
-                         Eigen::Matrix<double, 1, 2>* const J_out) -> Eigen::Matrix<double, 1, 1> {
-      if (J_out) {
-        J_out->operator()(0, 0) = weight;
-        J_out->operator()(0, 1) = -weight;
-      }
-      return Eigen::Matrix<double, 1, 1>{(u[0] - u[1]) * weight};
-    };
-    problem_.costs.push_back(
-        mini_opt::MakeResidual<1, 2>({MapKey<state_dim>(KeyType::U, k, num_states),
-                                      MapKey<state_dim>(KeyType::U, k + 1, num_states)},
-                                     cost));
+  for (std::size_t i = 0; i < state_dim; ++i) {
+    problem_.equality_constraints.push_back(
+        MakeScalarCost<4>(static_cast<KeyType>(i), 0, num_states, x_current[i], 1.0));
   }
 
-  // And between our current control input and the one from the last iteration:
-  const double u_prev = previous_solution_.rows() > 0
-                            ? previous_solution_[MapKey<4>(KeyType::U, 0, num_states)]
-                            : 0.0;
-  const double u_initial_weight = params_.u_derivative_penalty;
-  auto cost_initial_control =
-      [u_prev, u_initial_weight](
-          const Eigen::Matrix<double, 1, 1>& u,
-          Eigen::Matrix<double, 1, 1>* const J_out) -> Eigen::Matrix<double, 1, 1> {
-    if (J_out) {
-      J_out->operator()(0, 0) = u_initial_weight;
+  problem_.equality_constraints.push_back(
+      MakeScalarCost<4>(KeyType::THETA_1, final_state_index, num_states, M_PI / 2, 1.0));
+
+  // Equality constraint on the final state (velocities are zero).
+  problem_.equality_constraints.push_back(
+      MakeScalarCost<4>(KeyType::B_X_DOT, final_state_index, num_states, 0.0, 1.0));
+  problem_.equality_constraints.push_back(
+      MakeScalarCost<4>(KeyType::THETA_1_DOT, final_state_index, num_states, 0.0, 1.0));
+
+  // Quadratic penalty on the derivative of control inputs:
+  if (params_.u_derivative_cost_weight > 0.0) {
+    for (std::size_t k = 0; k + 1 < params_.window_length; ++k) {
+      const double weight = params_.u_derivative_cost_weight;
+      auto cost = [weight](
+                      const Eigen::Vector2d& u,
+                      Eigen::Matrix<double, 1, 2>* const J_out) -> Eigen::Matrix<double, 1, 1> {
+        if (J_out) {
+          J_out->operator()(0, 0) = weight;
+          J_out->operator()(0, 1) = -weight;
+        }
+        return Eigen::Matrix<double, 1, 1>{(u[0] - u[1]) * weight};
+      };
+      problem_.costs.push_back(
+          mini_opt::MakeResidual<1, 2>({MapKey<state_dim>(KeyType::U, k, num_states),
+                                        MapKey<state_dim>(KeyType::U, k + 1, num_states)},
+                                       cost));
     }
-    return Eigen::Matrix<double, 1, 1>{(u[0] - u_prev) * u_initial_weight};
-  };
-  problem_.costs.push_back(mini_opt::MakeResidual<1, 1>(
-      {MapKey<state_dim>(KeyType::U, 0, num_states)}, cost_initial_control));
+
+    // And between our current control input and the one from the last iteration:
+    const double u_prev = previous_solution_.rows() > 0
+                              ? previous_solution_[MapKey<4>(KeyType::U, 0, num_states)]
+                              : 0.0;
+    const double u_initial_weight = params_.u_derivative_cost_weight;
+    auto cost_initial_control =
+        [u_prev, u_initial_weight](
+            const Eigen::Matrix<double, 1, 1>& u,
+            Eigen::Matrix<double, 1, 1>* const J_out) -> Eigen::Matrix<double, 1, 1> {
+      if (J_out) {
+        J_out->operator()(0, 0) = u_initial_weight;
+      }
+      return Eigen::Matrix<double, 1, 1>{(u[0] - u_prev) * u_initial_weight};
+    };
+    problem_.costs.push_back(mini_opt::MakeResidual<1, 1>(
+        {MapKey<state_dim>(KeyType::U, 0, num_states)}, cost_initial_control));
+  }
 
   // Quadratic penalty on the final position, drive the cart back to the center:
-  const double b_x_final_weight = params_.b_x_final_penalty;
-  problem_.costs.push_back(mini_opt::MakeResidual<1, 1>(
-      {MapKey<state_dim>(KeyType::B_X, num_states - 1, num_states)},
-      [b_x_final_weight, b_x_set_point](
-          const Eigen::Matrix<double, 1, 1>& vars,
-          Eigen::Matrix<double, 1, 1>* J_out) -> Eigen::Matrix<double, 1, 1> {
-        if (J_out) {
-          J_out->operator[](0) = b_x_final_weight;
-        }
-        return Eigen::Matrix<double, 1, 1>{(vars[0] - b_x_set_point) * b_x_final_weight};
-      }));
+  if (params_.b_x_final_cost_weight > 0.0) {
+    problem_.costs.push_back(MakeScalarCost<4>(KeyType::B_X, final_state_index, num_states,
+                                               b_x_set_point, params_.b_x_final_cost_weight));
+  }
 
-  for (std::size_t k = 0; k < params_.window_length; ++k) {
-    const double u_penalty = params_.u_penalty;
-    auto cost = [u_penalty](
-                    const Eigen::Matrix<double, 1, 1>& u,
-                    Eigen::Matrix<double, 1, 1>* const J_out) -> Eigen::Matrix<double, 1, 1> {
-      if (J_out) {
-        J_out->operator()(0, 0) = u_penalty;
-      }
-      return Eigen::Matrix<double, 1, 1>{u[0] * u_penalty};
-    };
-    problem_.costs.push_back(
-        mini_opt::MakeResidual<1, 1>({MapKey<state_dim>(KeyType::U, k, num_states)}, cost));
+  if (params_.u_cost_weight > 0.0) {
+    for (std::size_t k = 0; k < params_.window_length; ++k) {
+      problem_.costs.push_back(
+          MakeScalarCost<4>(KeyType::U, k, num_states, 0.0, params_.u_cost_weight));
+    }
   }
 
   if (solver_) {

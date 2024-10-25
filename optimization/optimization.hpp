@@ -37,9 +37,15 @@ struct OptimizationParams {
   double u_guess_sinusoid_amplitude{10.0};
 
   // Parameters on the quadratic weights in the optimization:
-  double u_penalty{0.1};
-  double u_derivative_penalty{0.1};
-  double b_x_final_penalty{150.0};
+  double u_cost_weight{0.1};
+  double u_derivative_cost_weight{0.1};
+  double b_x_final_cost_weight{150.0};
+
+  // Parameters on the quadratic weights of the final angle, and speeds.
+  // If these are negative, they become equality constraints.
+  double th_final_cost_weight{-1.0};
+  double b_x_dot_final_cost_weight{-1.0};
+  double th_dot_final_cost_weight{-1.0};
 
   // Number of states in the window.
   // Add one for the terminal state.
@@ -84,8 +90,7 @@ class Optimization {
 
  private:
   void BuildProblem(const SingleCartPoleState& current_state,
-                    const SingleCartPoleParams& dynamics_params,
-                    double b_x_set_point);
+                    const SingleCartPoleParams& dynamics_params, double b_x_set_point);
 
   // Fill initial guess vector by integrating the dynamics model.
   void FillInitialGuess(Eigen::VectorXd& guess, const SingleCartPoleParams& dynamics_params,
