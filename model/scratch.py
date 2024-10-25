@@ -29,7 +29,11 @@ def main():
     opt_params.window_length = 40
     opt_params.absolute_first_derivative_tol = 1.0e-3
     opt_params.u_guess_sinusoid_amplitude = 10.0
-    opt_params.u_derivative_cost_weight = 0.0
+    opt_params.u_cost_weight = 0.0
+    opt_params.b_x_final_cost_weight = 5.0
+    opt_params.th_final_cost_weight = -1.0
+    opt_params.b_x_dot_final_cost_weight = 100.0
+    opt_params.th_dot_final_cost_weight = 100.0
     opt = Optimization(opt_params)
     outputs = opt.step(x0_initial, params, 0.0)
 
