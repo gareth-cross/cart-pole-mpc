@@ -267,29 +267,13 @@ export class Plotter {
       this.overlayDiv.innerHTML = '';
       return;
     }
-    const { x: dataX, y: dataY } = this.data;
 
     const pixelsFromNormalized = this.getPixelFromNormalizedTransform();
+    const ptPixels = { x: this.mousePosition.x, y: this.mousePosition.y };
+    const normalized = pixelsFromNormalized.inverse().transform(ptPixels);
+    const pt = { x: rangeX.convertTo(normalized.x), y: rangeY.convertTo(normalized.y) };
 
-    // Find the data sample closest to the mouse:
-    var k = 0;
-    var dMin = Number.POSITIVE_INFINITY;
-    for (var i = 0; i < dataX.length; ++i) {
-      const p = pixelsFromNormalized.transform({
-        x: rangeX.convertFrom(dataX[i]),
-        y: rangeY.convertFrom(dataY[i])
-      });
-      const d = Math.sqrt(
-        Math.pow(p.x - this.mousePosition.x, 2) + Math.pow(p.y - this.mousePosition.y, 2)
-      );
-      if (d < dMin) {
-        dMin = d;
-        k = i;
-      }
-    }
-
-    const pt: Point = { x: dataX[k], y: dataY[k] };
-    const ptPixels = pixelsFromNormalized.transform({
+    pixelsFromNormalized.transform({
       x: rangeX.convertFrom(pt.x),
       y: rangeY.convertFrom(pt.y)
     });
@@ -298,16 +282,16 @@ export class Plotter {
     this.context.strokeStyle = '#FBA108';
 
     // vertical line:
-    this.context.lineWidth = 2.0;
+    this.context.lineWidth = 1.0;
     this.context.setLineDash([5, 10]);
     this.context.beginPath();
     this.context.moveTo(ptPixels.x, this.canvas.height);
-    this.context.lineTo(ptPixels.x, ptPixels.y);
+    this.context.lineTo(ptPixels.x, 0);
     this.context.stroke();
 
     this.context.beginPath();
     this.context.moveTo(0, ptPixels.y);
-    this.context.lineTo(ptPixels.x, ptPixels.y);
+    this.context.lineTo(this.canvas.width, ptPixels.y);
     this.context.stroke();
     this.context.restore();
 
