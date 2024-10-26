@@ -9,6 +9,7 @@
   -khtml-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
+  cursor: pointer;
 }
 
 #cartPoleCanvasDiv {
@@ -18,6 +19,10 @@
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+}
+
+.canvas-overlay-text {
+  pointer-events: none;
 }
 
 .plotters {

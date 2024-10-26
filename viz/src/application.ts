@@ -369,7 +369,6 @@ class Application {
     if (this.optimizer) {
       this.optimizer.delete();
     }
-    console.log(JSON.stringify(this.optimizationParams));
     this.optimizer = new this.wasm.Optimization(this.optimizationParams);
   }
 
