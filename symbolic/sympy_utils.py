@@ -16,6 +16,8 @@ def get_euler_lagrange_coefficients(
     we can write the system in the form:
 
     A(x, x') * x'' = f(x, x', u)
+
+    TODO: If we add `coeff` to wrenfold, we can drop this step and make things a bit faster.
     """
     A_rows = []
     b_rows = []

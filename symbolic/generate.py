@@ -1,5 +1,5 @@
 """
-Code-generate the forward dynamics of a double pendulum using wrenfold.
+Code-generate the forward dynamics of a cart-pole system using wrenfold.
 """
 
 import argparse
@@ -8,29 +8,24 @@ from pathlib import Path
 
 from wrenfold import ast, code_generation, type_info
 
-from .dynamics import get_double_pendulum_dynamics, get_single_pendulum_dynamics
+from .dynamics_double import get_double_pendulum_dynamics
+from .dynamics_single import get_single_pendulum_dynamics
 
 REPO_ROOT = Path(__file__).parent.parent.absolute()
 
 
-TYPESCRIPT_PREAMBLE = """
-// Machine generated code (see generate.py)
-import * as mathjs from 'mathjs';
-import { PendulumParams } from './pendulum_params';
-
-""".lstrip()
-
-
 class CppCodeGenerator(code_generation.CppGenerator):
-    """Place custom types into custom namespace."""
+    """Customize C++ code generation."""
 
     def format_custom_type(self, custom: type_info.CustomType) -> str:
+        """Place things into our custom namespace."""
         return f"pendulum::{custom.name}"
 
     def format_matrix_type(self, mat: type_info.MatrixType) -> str:
         return f"Eigen::Matrix<Scalar, {mat.rows}, {mat.cols}>"
 
     def format_construct_matrix(self, construct: ast.ConstructMatrix) -> str:
+        """Let the code-generator know how to construct an Eigen matrix."""
         formatted_args = ", ".join(self.format(x) for x in construct.args)
         return f"Eigen::Matrix<double, {construct.type.rows}, {construct.type.cols}>({formatted_args})"
 
@@ -61,7 +56,7 @@ def parse_args() -> argparse.Namespace:
         "--version",
         choices=["single", "double"],
         help="Which system to generate",
-        required=True,
+        default="single",
     )
     return parser.parse_args()
 
