@@ -1,0 +1,105 @@
+name: linux
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches:
+      - "*"
+  # Allow manual trigger for this workflow.
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    name: linux
+    defaults:
+      run:
+        shell: "bash -el {0}"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+
+      # Native build steps:
+      - name: Add repositories for GCC
+        run: sudo apt-add-repository ppa:ubuntu-toolchain-r/test
+
+      - name: Install GCC
+        run: |
+          sudo apt update
+          sudo apt install g++-13 cmake ninja-build
+
+      - name: Create build directory
+        run: cmake -E make_directory ${{runner.workspace}}/build-native
+
+      - name: Configure native build
+        env:
+          CC: gcc-13
+          CXX: g++-13
+        working-directory: ${{runner.workspace}}/build-native
+        run: |
+          cmake ${{github.workspace}} -DCMAKE_BUILD_TYPE=RelWithDebInfo -Wno-deprecated -G Ninja
+
+      - name: Run native build
+        working-directory: ${{runner.workspace}}/build-native
+        run: |
+          threads=`nproc`
+          cmake --build . --config RelWithDebInfo --parallel $threads
+
+      - name: Run CTest
+        working-directory: ${{runner.workspace}}/build-native
+        run: ctest --output-on-failure
+
+      # Emscripten build steps:
+      - name: Install emscripten
+        working-directory: ${{runner.temp}}
+        run: |
+          git clone https://github.com/emscripten-core/emsdk.git
+          cd emsdk
+          git checkout 3.1.70
+          ./emsdk install latest
+          ./emsdk activate latest
+
+      - name: Create emscripten build directory
+        run: cmake -E make_directory ${{runner.workspace}}/build-emscripten
+
+      - name: Configure emscripten build
+        working-directory: ${{runner.workspace}}/build-emscripten
+        run: |
+          source ${{runner.temp}}/emsdk/emsdk_env.sh
+          emcmake cmake ${{github.workspace}} -DCMAKE_BUILD_TYPE=Release -DBUILD_WITH_EMSCRIPTEN=ON
+
+      - name: Run emscripten build
+        working-directory: ${{runner.workspace}}/build-emscripten
+        run: |
+          threads=`nproc`
+          source ${{runner.temp}}/emsdk/emsdk_env.sh
+          emmake make -j $threads
+
+      # Node build steps:
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install node packages
+        working-directory: ${{github.workspace}}/viz
+        run: npm ci
+
+      - name: Run npm build
+        working-directory: ${{github.workspace}}/viz
+        run: npm run build -- --mode production
+
+      # Pre-commit steps.
+      - name: Setup python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install pre-commit
+        run: python -m pip install pre-commit
+
+      - name: Pre-commit checks
+        working-directory: ${{github.workspace}}
+        run: pre-commit run --all-files
