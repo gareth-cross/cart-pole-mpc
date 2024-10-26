@@ -10,7 +10,7 @@
 
 ![Linux workflow status](https://github.com/gareth-cross/cart-pole-mpc/actions/workflows/linux.yml/badge.svg?branch=main)
 
-`cart-pole-mpc` is a toy implementation of Model Predictive Control (MPC) for a cart-pole system. The controller itself is written in C++, but compiles for the web using [emscripten](https://emscripten.org) and WebAssembly (WASM). I wrote this to learn more about MPC, and also to experiment with deploying to WASM. See the [blog post](https://garethx.com/posts/cart-pole-mpc/) for more context.
+`cart-pole-mpc` is a toy implementation of Model Predictive Control (MPC) for a cart-pole system. The controller itself is written in C++, but compiles for the web using [emscripten](https://emscripten.org) and WebAssembly (WASM). I wrote this to learn more about MPC, and also to experiment with deploying WASM apps to the web. See the [blog post](https://garethx.com/posts/cart-pole-mpc/) for more context.
 
 ## Building
 
@@ -46,7 +46,7 @@ emmake make -j8
 ```
 **NOTE:** ⚠️ If you had any stray values in `CCFLAGS` or `LDFLAGS` when running the project configuration, these invalid flags may get passed to `em++`. Some package managers like conda will touch these environment variables. I suggest explicitly *clearing* them before configuration.
 
-This step should place a two files in `viz/src`: `optimization-wasm.js` and `optimization-wasm.d.ts`.
+This step should place two files in `viz/src`: `optimization-wasm.js` and `optimization-wasm.d.ts`.
 
 ### Run the web app:
 
