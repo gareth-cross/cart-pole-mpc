@@ -70,6 +70,24 @@ To change the dynamics, edit `symbolic/dynamics_single.py` and run the generatio
 python -m symbolic.generate
 ```
 
+## Building the python wrapper
+
+The optimization can also be run via a [nanobind](https://github.com/wjakob/nanobind) python wrapper. This is useful for offline debugging or generating plots in matplotlib/plotly.
+
+The following command requires that Python>=3.9 is available on the path:
+```bash
+mkdir build
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo
+```
+*Note:* If you want to build both the emscripten bindings and the python module, you should probably create two different build directories.
+
+Then compile by running:
+```bash
+cmake --build .
+```
+This should produce `pypendulum.**.so` in `build/wrapper/`.
+
 ## Contributing
 
 This is not really intended to be a production piece of software, but PRs are welcome if you find something broken. This project uses [pre-commit](https://pre-commit.com) to enforce code-formatting.
